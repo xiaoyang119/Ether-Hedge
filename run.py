@@ -1,20 +1,12 @@
-import http.server
-import webbrowser
-import os
-import threading
+#!/usr/bin/env python3
+"""Serve HedgeX DApp on localhost:8000"""
+import http.server, socketserver, os
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 PORT = 8000
-DIR = os.path.dirname(os.path.abspath(__file__))
-FILE = "HedgeX_DApp.html"
+Handler = http.server.SimpleHTTPRequestHandler
 
-os.chdir(DIR)
-
-def open_browser():
-    webbrowser.open(f"http://localhost:{PORT}/{FILE}")
-
-print(f"Starting server at http://localhost:{PORT}/{FILE}")
-print("Press Ctrl+C to stop\n")
-
-threading.Timer(1, open_browser).start()
-
-http.server.HTTPServer(("", PORT), http.server.SimpleHTTPRequestHandler).serve_forever()
+print(f"\n  HedgeX DApp running at: http://localhost:{PORT}/HedgeX_DApp.html\n")
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    httpd.serve_forever()

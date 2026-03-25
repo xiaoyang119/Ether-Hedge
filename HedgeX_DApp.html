@@ -4,891 +4,776 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HedgeX — Delta-Neutral Hedging DApp</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700&family=JetBrains+Mono:wght@400;600&display=swap');
+
   :root {
-    --bg-dark: #0a0e17;
-    --bg-card: #111827;
-    --bg-card-hover: #1a2235;
-    --border: #1e2a3a;
-    --accent: #00e5a0;
-    --accent-dim: rgba(0,229,160,0.15);
-    --accent-glow: rgba(0,229,160,0.4);
-    --red: #ff4757;
-    --red-dim: rgba(255,71,87,0.15);
-    --blue: #4da6ff;
-    --blue-dim: rgba(77,166,255,0.15);
-    --yellow: #ffc048;
-    --text: #e2e8f0;
-    --text-dim: #64748b;
-    --text-muted: #475569;
-    --font-display: 'Outfit', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --bg: #0a0b0e;
+    --surface: #12141a;
+    --surface2: #1a1d26;
+    --border: #252830;
+    --border-active: #3d4150;
+    --text: #e8eaed;
+    --text2: #9499a8;
+    --accent: #22d1a0;
+    --accent2: #1ba885;
+    --danger: #f04770;
+    --warning: #f0a030;
+    --blue: #4a90e2;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --radius: 12px;
+    --glow: 0 0 20px rgba(34, 209, 160, 0.15);
   }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
-    background: var(--bg-dark);
+    font-family: var(--font);
+    background: var(--bg);
     color: var(--text);
-    font-family: var(--font-display);
     min-height: 100vh;
     overflow-x: hidden;
   }
+
   body::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none; z-index: 0;
-  }
-  body::after {
     content: '';
     position: fixed;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: radial-gradient(ellipse at 30% 20%, rgba(0,229,160,0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 80%, rgba(77,166,255,0.04) 0%, transparent 50%);
-    pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(34,209,160,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(74,144,226,0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
   }
-  .app { position: relative; z-index: 1; }
 
-  .header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 40px;
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* ─── Header ─── */
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; margin-bottom: 24px;
     border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(20px);
-    background: rgba(10,14,23,0.8);
-    position: sticky; top: 0; z-index: 100;
   }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-icon {
-    width: 40px; height: 40px;
+  .logo {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
     background: linear-gradient(135deg, var(--accent), var(--blue));
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 18px; color: var(--bg-dark);
-    box-shadow: 0 0 20px var(--accent-glow);
-  }
-  .logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .logo-text span { color: var(--accent); }
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .network-badge {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 16px;
-    background: var(--accent-dim);
-    border: 1px solid rgba(0,229,160,0.3);
-    border-radius: 20px; font-size: 13px; font-weight: 500;
-  }
-  .network-dot {
-    width: 8px; height: 8px;
-    background: var(--accent); border-radius: 50%;
-    box-shadow: 0 0 8px var(--accent);
-    animation: pulse 2s infinite;
-  }
-  .network-dot.disconnected { background: var(--red); box-shadow: 0 0 8px var(--red); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-  .connect-btn {
-    padding: 10px 24px;
-    background: linear-gradient(135deg, var(--accent), #00c48c);
-    color: var(--bg-dark); border: none; border-radius: 10px;
-    font-family: var(--font-display); font-weight: 600; font-size: 14px;
-    cursor: pointer; transition: all 0.3s;
-    box-shadow: 0 0 20px rgba(0,229,160,0.3);
-  }
-  .connect-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 30px rgba(0,229,160,0.5); }
-  .connect-btn.connected {
-    background: var(--bg-card); color: var(--accent);
-    border: 1px solid var(--accent); box-shadow: none;
-  }
-
-  .main { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
-
-  .hero { text-align: center; margin-bottom: 48px; }
-  .hero h1 {
-    font-size: 48px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 12px;
-    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .hero p { color: var(--text-dim); font-size: 18px; font-weight: 300; }
-  .hero .live-tag {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 12px; background: var(--accent-dim); border: 1px solid rgba(0,229,160,0.3);
-    border-radius: 20px; font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 12px;
-  }
+  .logo span { font-weight: 300; opacity: 0.7; -webkit-text-fill-color: var(--text2); margin-left: 8px; font-size: 13px; }
 
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .connect-btn {
+    padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-family: var(--font);
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .connect-btn:hover { border-color: var(--accent); box-shadow: var(--glow); }
+  .connect-btn.connected { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Status Bar ─── */
+  .status-bar {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
   .stat-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 14px; padding: 20px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    transition: border-color 0.2s;
   }
-  .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .stat-value { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
-  .stat-value.green { color: var(--accent); }
+  .stat-card:hover { border-color: var(--border-active); }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 6px; }
+  .stat-value { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+  .stat-value.accent { color: var(--accent); }
   .stat-value.blue { color: var(--blue); }
-  .stat-value.yellow { color: var(--yellow); }
-  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; font-family: var(--mono); }
 
-  .tabs {
-    display: flex; gap: 4px; margin-bottom: 32px;
-    background: var(--bg-card); border-radius: 14px; padding: 4px; border: 1px solid var(--border);
+  /* ─── Grid Layout ─── */
+  .main-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
   }
-  .tab {
-    flex: 1; padding: 12px; text-align: center; border-radius: 10px;
-    cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.3s;
-    color: var(--text-dim); border: none; background: none; font-family: var(--font-display);
-  }
-  .tab.active { background: var(--accent); color: var(--bg-dark); font-weight: 600; box-shadow: 0 0 15px var(--accent-glow); }
-  .tab:not(.active):hover { color: var(--text); background: var(--bg-card-hover); }
+  @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
 
+  /* ─── Cards ─── */
   .card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 28px; margin-bottom: 24px; transition: border-color 0.3s;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
   }
-  .card:hover { border-color: rgba(0,229,160,0.3); }
-  .card-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 20px; font-weight: 600; }
+  .card-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-badge {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px;
+    background: rgba(34,209,160,0.1); color: var(--accent);
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .card-badge.warn { background: rgba(240,160,48,0.1); color: var(--warning); }
+  .card-badge.danger { background: rgba(240,71,112,0.1); color: var(--danger); }
+  .card-body { padding: 20px; }
 
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-label { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+  /* ─── Form Elements ─── */
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    display: block; font-size: 12px; color: var(--text2);
+    margin-bottom: 6px; font-weight: 500;
+  }
   .form-input {
-    background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px;
-    padding: 12px 16px; color: var(--text); font-family: var(--font-mono); font-size: 15px;
-    outline: none; transition: border-color 0.3s;
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font-family: var(--mono); font-size: 14px;
+    transition: border-color 0.2s; outline: none;
   }
-  .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-  .form-input::placeholder { color: var(--text-muted); }
-  .form-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: #4a4e5a; }
+  .form-hint { font-size: 11px; color: var(--text2); margin-top: 4px; }
 
-  .action-btn {
-    width: 100%; padding: 14px;
-    background: linear-gradient(135deg, var(--accent), #00c48c);
-    color: var(--bg-dark); border: none; border-radius: 12px;
-    font-family: var(--font-display); font-weight: 700; font-size: 16px;
-    cursor: pointer; transition: all 0.3s; letter-spacing: 0.5px;
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ─── Buttons ─── */
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 8px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; margin-top: 6px;
   }
-  .action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 30px rgba(0,229,160,0.4); }
-  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-  .action-btn.danger { background: linear-gradient(135deg, var(--red), #e63946); }
-  .action-btn.blue-btn { background: linear-gradient(135deg, var(--blue), #2d8cf0); }
-  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-
-  .results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
-  .result-card { border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border); }
-  .result-card.spot { background: var(--blue-dim); border-color: rgba(77,166,255,0.3); }
-  .result-card.hedge { background: var(--accent-dim); border-color: rgba(0,229,160,0.3); }
-  .result-card.net { background: rgba(255,192,72,0.1); border-color: rgba(255,192,72,0.3); }
-  .result-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .result-value { font-family: var(--font-mono); font-size: 28px; font-weight: 700; }
-  .result-value.positive { color: var(--accent); }
-  .result-value.negative { color: var(--red); }
-  .result-value.zero { color: var(--yellow); }
-
-  .tx-log {
-    background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px; margin-top: 16px; max-height: 200px; overflow-y: auto;
-    font-family: var(--font-mono); font-size: 12px; line-height: 1.8;
+  .btn-primary { background: var(--accent); color: #0a0b0e; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { background: #d03060; }
+  .btn-outline {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text);
   }
-  .tx-log .success { color: var(--accent); }
-  .tx-log .error { color: var(--red); }
-  .tx-log .info { color: var(--blue); }
-  .tx-log .pending { color: var(--yellow); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; width: auto; margin-top: 0; }
 
-  .contract-table { width: 100%; border-collapse: collapse; }
-  .contract-table th {
-    text-align: left; padding: 12px 16px; font-size: 12px;
-    text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
-    border-bottom: 1px solid var(--border);
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ─── Position Card ─── */
+  .position-info {
+    background: var(--bg); border-radius: 8px; padding: 14px;
+    margin-bottom: 12px;
   }
-  .contract-table td { padding: 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
-  .contract-table td:first-child { font-weight: 600; }
-  .contract-table td:nth-child(2) { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
-  .contract-table a { color: var(--accent); text-decoration: none; }
-  .contract-table a:hover { text-decoration: underline; }
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-  .badge.verified { background: var(--accent-dim); color: var(--accent); }
-
-  .arch-flow { display: flex; align-items: center; justify-content: center; gap: 0; padding: 32px 0; flex-wrap: wrap; }
-  .arch-node {
-    background: var(--bg-dark); border: 2px solid var(--border); border-radius: 14px;
-    padding: 20px 24px; text-align: center; min-width: 180px; transition: all 0.3s;
+  .pos-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; font-size: 13px;
   }
-  .arch-node:hover { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-dim); transform: translateY(-4px); }
-  .arch-node-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
-  .arch-node-sub { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
-  .arch-arrow { font-size: 24px; color: var(--accent); padding: 0 12px; font-weight: 300; }
+  .pos-row .label { color: var(--text2); }
+  .pos-row .value { font-family: var(--mono); font-weight: 500; }
+  .pos-row .value.green { color: var(--accent); }
+  .pos-row .value.red { color: var(--danger); }
 
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  .footer { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border); margin-top: 60px; }
-
-  .quick-btn {
-    padding: 12px; background: var(--bg-dark); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text); cursor: pointer;
-    font-family: var(--font-display); font-size: 13px; transition: all 0.2s;
+  /* ─── Simulation Results ─── */
+  .sim-results {
+    background: var(--bg); border-radius: 8px; padding: 14px;
+    display: none;
   }
-  .quick-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-
-  @media (max-width: 768px) {
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .form-grid { grid-template-columns: 1fr; }
-    .results { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 32px; }
-    .header { padding: 16px 20px; }
-    .arch-flow { flex-direction: column; }
-    .arch-arrow { transform: rotate(90deg); }
-    .btn-row { grid-template-columns: 1fr; }
+  .sim-results.show { display: block; }
+  .sim-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
   }
+  .sim-bar:last-child { border-bottom: none; }
+  .sim-bar .label { flex: 1; font-size: 13px; color: var(--text2); }
+  .sim-bar .val { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+
+  /* ─── Log ─── */
+  .log-panel {
+    margin-top: 16px; grid-column: 1 / -1;
+  }
+  .log-body {
+    max-height: 180px; overflow-y: auto; padding: 14px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .log-line { color: var(--text2); }
+  .log-line.ok { color: var(--accent); }
+  .log-line.err { color: var(--danger); }
+  .log-line.info { color: var(--blue); }
+
+  /* ─── Contract Links ─── */
+  .contracts-bar {
+    margin-top: 16px; grid-column: 1 / -1;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .contract-link {
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    border-radius: 4px; background: var(--bg); color: var(--text2);
+    text-decoration: none; border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .contract-link:hover { border-color: var(--accent); color: var(--accent); }
+  .contract-link span { color: var(--text); font-weight: 600; }
+
+  /* ─── Animations ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card, .stat-card, .contracts-bar, .log-panel {
+    animation: fadeUp 0.4s ease-out both;
+  }
+  .stat-card:nth-child(2) { animation-delay: 0.05s; }
+  .stat-card:nth-child(3) { animation-delay: 0.1s; }
+  .stat-card:nth-child(4) { animation-delay: 0.15s; }
+  .stat-card:nth-child(5) { animation-delay: 0.2s; }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <div class="app">
 
-  <header class="header">
-    <div class="logo">
-      <div class="logo-icon">HX</div>
-      <div class="logo-text">Hedge<span>X</span></div>
+  <!-- Header -->
+  <header>
+    <div>
+      <div class="logo">HedgeX <span>Delta-Neutral Hedging</span></div>
     </div>
-    <div class="header-right">
-      <div class="network-badge">
-        <div class="network-dot disconnected" id="netDot"></div>
-        <span id="netLabel">Not Connected</span>
-      </div>
-      <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-    </div>
+    <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
   </header>
 
-  <main class="main">
-    <div class="hero">
-      <h1>Delta-Neutral Hedging</h1>
-      <p>Hedge your crypto exposure with on-chain perpetual swaps</p>
-      <div class="live-tag"><div class="network-dot" style="width:6px;height:6px;"></div> Live on Sepolia — Connected to Smart Contracts</div>
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="stat-card">
+      <div class="stat-label">ETH / USD</div>
+      <div class="stat-value accent" id="ethPrice">—</div>
+      <div class="stat-sub" id="priceFresh"></div>
     </div>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">ETH/USD (Chainlink)</div>
-        <div class="stat-value green" id="ethPrice">—</div>
-        <div class="stat-sub" id="priceSource">Connect wallet to fetch</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Your HDGT Balance</div>
-        <div class="stat-value blue" id="hdgtBalance">—</div>
-        <div class="stat-sub">HedgeToken (ERC-20)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Free Collateral</div>
-        <div class="stat-value yellow" id="freeCollateral">—</div>
-        <div class="stat-sub">In PerpetualEngine</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Hedge Status</div>
-        <div class="stat-value" id="hedgeStatus" style="color:var(--text)">—</div>
-        <div class="stat-sub" id="hedgeSub"></div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">LINK Balance (Wallet)</div>
+      <div class="stat-value" id="linkBalance">—</div>
+      <div class="stat-sub" id="linkAllowance"></div>
     </div>
-
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('simulate',this)">Simulate</button>
-      <button class="tab" onclick="switchTab('trade',this)">Trade</button>
-      <button class="tab" onclick="switchTab('contracts',this)">Contracts</button>
-      <button class="tab" onclick="switchTab('architecture',this)">Architecture</button>
-      <button class="tab" onclick="switchTab('how',this)">How It Works</button>
+    <div class="stat-card">
+      <div class="stat-label">Margin (Total / Free)</div>
+      <div class="stat-value blue" id="marginTotal">—</div>
+      <div class="stat-sub" id="marginDetail"></div>
     </div>
-
-    <!-- Simulate -->
-    <div class="panel active" id="panel-simulate">
-      <div class="card">
-        <div class="card-title">⚡ On-Chain Hedge Simulator — calls simulateHedge() on contract</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Spot Value (USD)</label>
-            <input class="form-input" type="number" id="simSpot" value="10000" placeholder="10000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Hedge Ratio (basis points, 10000=100%)</label>
-            <input class="form-input" type="number" id="simRatio" value="10000" placeholder="10000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Entry Price (USD, 8 decimals)</label>
-            <input class="form-input" type="number" id="simEntry" value="2000" placeholder="2000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Exit Price (USD, 8 decimals)</label>
-            <input class="form-input" type="number" id="simExit" value="1800" placeholder="1800">
-          </div>
-        </div>
-        <button class="action-btn" onclick="runSimulation()">Run On-Chain Simulation</button>
-        <div class="results" id="simResults" style="display:none;">
-          <div class="result-card spot">
-            <div class="result-label">Spot P&L</div>
-            <div class="result-value" id="simSpotPnl">$0</div>
-          </div>
-          <div class="result-card hedge">
-            <div class="result-label">Hedge P&L</div>
-            <div class="result-value" id="simHedgePnl">$0</div>
-          </div>
-          <div class="result-card net">
-            <div class="result-label">Net P&L</div>
-            <div class="result-value" id="simNetPnl">$0</div>
-          </div>
-        </div>
-        <div class="tx-log" id="simLog"><span class="info">Ready. Connect wallet or use quick scenarios below.</span></div>
-      </div>
-      <div class="card">
-        <div class="card-title">📊 Quick Scenarios</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-          <button class="quick-btn" onclick="loadSim(10000,10000,2000,1800)">ETH -10%<br><span style="color:var(--accent);font-size:11px;">100% Hedge</span></button>
-          <button class="quick-btn" onclick="loadSim(10000,10000,2000,1500)">ETH -25%<br><span style="color:var(--accent);font-size:11px;">100% Hedge</span></button>
-          <button class="quick-btn" onclick="loadSim(10000,5000,2000,2200)">ETH +10%<br><span style="color:var(--blue);font-size:11px;">50% Hedge</span></button>
-          <button class="quick-btn" onclick="loadSim(10000,10000,2000,2500)">ETH +25%<br><span style="color:var(--accent);font-size:11px;">100% Hedge</span></button>
-          <button class="quick-btn" onclick="loadSim(10000,10000,2000,1000)">ETH -50%<br><span style="color:var(--accent);font-size:11px;">100% Hedge</span></button>
-          <button class="quick-btn" onclick="loadSim(10000,5000,2000,3000)">ETH +50%<br><span style="color:var(--blue);font-size:11px;">50% Hedge</span></button>
-        </div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">Risk Parameters</div>
+      <div class="stat-value" id="riskParams">—</div>
+      <div class="stat-sub" id="riskDetail"></div>
     </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Hedge</div>
+      <div class="stat-value" id="hedgeStatus">None</div>
+      <div class="stat-sub" id="hedgeDetail"></div>
+    </div>
+  </div>
 
-    <!-- Trade -->
-    <div class="panel" id="panel-trade">
-      <div class="card">
-        <div class="card-title">💰 Step 1 — Approve & Deposit Collateral</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Amount (HDGT, in wei units)</label>
-            <input class="form-input" type="text" id="depositAmt" value="1000000000000000000000" placeholder="1000000000000000000000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Approve To</label>
-            <select class="form-input" id="approveTo" style="cursor:pointer;">
-              <option value="engine">PerpetualEngine</option>
-              <option value="strategy">HedgingStrategy</option>
-            </select>
-          </div>
+  <!-- Main Grid -->
+  <div class="main-grid">
+
+    <!-- Collateral Management -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Collateral Management</span>
+        <span class="card-badge">LINK</span>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Amount (LINK)</label>
+          <input class="form-input" id="collateralAmt" type="text" placeholder="0.1">
         </div>
         <div class="btn-row">
-          <button class="action-btn blue-btn" onclick="approveToken()">Approve HDGT</button>
-          <button class="action-btn" onclick="depositCollateral()">Deposit Collateral</button>
+          <button class="btn btn-outline" onclick="approveLINK()">Approve</button>
+          <button class="btn btn-primary" onclick="depositCollateral()">Deposit</button>
         </div>
-        <div class="tx-log" id="depositLog"><span class="info">Approve first, then deposit.</span></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📈 Step 2 — Open / Close Position (PerpetualEngine)</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Direction</label>
-            <select class="form-input" id="posDirection" style="cursor:pointer;">
-              <option value="false">Short (Hedge)</option>
-              <option value="true">Long</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Size (USD, raw)</label>
-            <input class="form-input" type="text" id="posSize" value="100000000000" placeholder="100000000000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Leverage (1-20)</label>
-            <input class="form-input" type="number" id="posLeverage" value="5" min="1" max="20">
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="action-btn" onclick="openPosition()">Open Position</button>
-          <button class="action-btn danger" onclick="closePosition()">Close Position</button>
-        </div>
-        <div class="tx-log" id="posLog"><span class="info">Deposit collateral first, then open position.</span></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🛡 Step 3 — One-Click Hedge (HedgingStrategy)</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Spot Value (USD raw)</label>
-            <input class="form-input" type="text" id="hedgeSpot" value="100000000000" placeholder="100000000000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Hedge Ratio (10000=100%)</label>
-            <input class="form-input" type="number" id="hedgeRatioInput" value="10000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Collateral Amount (HDGT wei)</label>
-            <input class="form-input" type="text" id="hedgeCollateral" value="1000000000000000000000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Leverage (1-20)</label>
-            <input class="form-input" type="number" id="hedgeLeverage" value="5" min="1" max="20">
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="action-btn" onclick="openHedge()">Open Hedge</button>
-          <button class="action-btn danger" onclick="closeHedge()">Close Hedge</button>
-        </div>
-        <div class="tx-log" id="hedgeLog"><span class="info">Approve HedgingStrategy first in Step 1, then open hedge.</span></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📤 Withdraw Collateral</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Amount (HDGT wei)</label>
-            <input class="form-input" type="text" id="withdrawAmt" value="1000000000000000000000">
-          </div>
-        </div>
-        <button class="action-btn danger" onclick="withdrawCollateral()">Withdraw Collateral</button>
-        <div class="tx-log" id="withdrawLog"><span class="info">Close positions before withdrawing.</span></div>
+        <button class="btn btn-outline" onclick="withdrawCollateral()" style="margin-top:8px">Withdraw</button>
       </div>
     </div>
 
-    <!-- Contracts -->
-    <div class="panel" id="panel-contracts">
-      <div class="card">
-        <div class="card-title">📋 Deployed Contracts — Sepolia Testnet</div>
-        <table class="contract-table">
-          <thead><tr><th>Contract</th><th>Address</th><th>Role</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>HedgeToken (HDGT)</td>
-              <td><a href="https://sepolia.etherscan.io/address/0xf71CCd154E35cc59F59A8bcBbE67d9E296e077a8" target="_blank">0xf71CCd15...e077a8</a></td>
-              <td>ERC-20 collateral token</td>
-              <td><span class="badge verified">✓ Verified</span></td>
-            </tr>
-            <tr>
-              <td>PerpetualEngine</td>
-              <td><a href="https://sepolia.etherscan.io/address/0x11c8436E701D425993fB4A0C3aefCEc4d5607D33" target="_blank">0x11c8436E...607D33</a></td>
-              <td>Trading engine + Chainlink oracle</td>
-              <td><span class="badge verified">✓ Verified</span></td>
-            </tr>
-            <tr>
-              <td>HedgingStrategy</td>
-              <td><a href="https://sepolia.etherscan.io/address/0x36dd2f71b41d456a03493Da1388BeeF3182bd7F3" target="_blank">0x36dd2f71...bd7f3</a></td>
-              <td>Delta-neutral hedging logic</td>
-              <td><span class="badge verified">✓ Verified</span></td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Open Hedge -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Open Hedge</span>
+        <span class="card-badge">Short Perp</span>
       </div>
-      <div class="card">
-        <div class="card-title">⚙️ System Parameters (read from chain)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;" id="paramsGrid">
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Max Leverage</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramLeverage">—</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Spot Value (USD, 8 decimals)</label>
+          <input class="form-input" id="spotValueUsd" type="text" placeholder="200000000000">
+          <div class="form-hint">e.g. $2000 = 200000000000</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Hedge Ratio (BPS)</label>
+            <input class="form-input" id="hedgeRatio" type="text" placeholder="10000" value="10000">
+            <div class="form-hint">10000 = 100%</div>
           </div>
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Maintenance Margin</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramMargin">—</div>
+          <div class="form-group">
+            <label class="form-label">Collateral (LINK, 18 dec)</label>
+            <input class="form-input" id="hedgeCollateral" type="text" placeholder="100000000000000000">
+            <div class="form-hint">0.1 LINK = 1e17</div>
           </div>
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Funding Interval</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramFunding">—</div>
+        </div>
+        <button class="btn btn-primary" onclick="openHedge()">Open Hedge Position</button>
+        <button class="btn btn-danger" onclick="closeHedge()" style="margin-top:8px">Close Hedge</button>
+      </div>
+    </div>
+
+    <!-- Position Health -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Position Health</span>
+        <span class="card-badge" id="healthBadge">—</span>
+      </div>
+      <div class="card-body">
+        <div class="position-info" id="positionInfo">
+          <div class="pos-row"><span class="label">Position ID</span><span class="value" id="posId">—</span></div>
+          <div class="pos-row"><span class="label">Direction</span><span class="value" id="posDir">—</span></div>
+          <div class="pos-row"><span class="label">Size (USD)</span><span class="value" id="posSize">—</span></div>
+          <div class="pos-row"><span class="label">Entry Price</span><span class="value" id="posEntry">—</span></div>
+          <div class="pos-row"><span class="label">Collateral</span><span class="value" id="posCollateral">—</span></div>
+          <div class="pos-row"><span class="label">Equity</span><span class="value" id="posEquity">—</span></div>
+          <div class="pos-row"><span class="label">Unrealized PnL</span><span class="value" id="posPnl">—</span></div>
+          <div class="pos-row"><span class="label">Maint. Margin</span><span class="value" id="posMM">—</span></div>
+        </div>
+        <button class="btn btn-outline" onclick="refreshPosition()">Refresh Position</button>
+      </div>
+    </div>
+
+    <!-- Simulate Hedge -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Simulate Hedge</span>
+        <span class="card-badge warn">Pure</span>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Spot Value (USD 8d)</label>
+            <input class="form-input" id="simSpot" type="text" placeholder="200000000000">
           </div>
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Liquidation Reward</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramLiqReward">—</div>
+          <div class="form-group">
+            <label class="form-label">Hedge Ratio (BPS)</label>
+            <input class="form-input" id="simRatio" type="text" placeholder="10000" value="10000">
           </div>
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Total Long Size</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramLong">—</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Entry Price (8d)</label>
+            <input class="form-input" id="simEntry" type="text" placeholder="200000000000">
           </div>
-          <div style="padding:14px;background:var(--bg-dark);border-radius:10px;">
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Total Short Size</div>
-            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="paramShort">—</div>
+          <div class="form-group">
+            <label class="form-label">Exit Price (8d)</label>
+            <input class="form-input" id="simExit" type="text" placeholder="180000000000">
           </div>
+        </div>
+        <button class="btn btn-primary" onclick="simulateHedge()">Run Simulation</button>
+        <div class="sim-results" id="simResults" style="margin-top:12px">
+          <div class="sim-bar"><span class="label">Spot P&L</span><span class="val" id="simSpotPnl">—</span></div>
+          <div class="sim-bar"><span class="label">Hedge P&L</span><span class="val" id="simHedgePnl">—</span></div>
+          <div class="sim-bar"><span class="label">Net P&L</span><span class="val" id="simNetPnl">—</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Architecture -->
-    <div class="panel" id="panel-architecture">
-      <div class="card">
-        <div class="card-title">🏗 System Architecture</div>
-        <div class="arch-flow">
-          <div class="arch-node"><div class="arch-node-title" style="color:var(--yellow);">User</div><div class="arch-node-sub">MetaMask</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="arch-node-title" style="color:var(--accent);">HedgingStrategy</div><div class="arch-node-sub">openHedge / closeHedge</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="arch-node-title" style="color:var(--blue);">PerpetualEngine</div><div class="arch-node-sub">openPosition / closePosition</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="arch-node-title" style="color:var(--red);">Chainlink</div><div class="arch-node-sub">ETH/USD Oracle</div></div>
-        </div>
-        <div class="arch-flow" style="margin-top:8px;">
-          <div class="arch-node"><div class="arch-node-title" style="color:var(--yellow);">HedgeToken</div><div class="arch-node-sub">ERC-20 HDGT</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node" style="min-width:400px;"><div class="arch-node-title">Collateral Flow</div><div class="arch-node-sub">approve → deposit → openPosition → closePosition → withdraw</div></div>
-        </div>
+    <!-- Log Panel -->
+    <div class="card log-panel">
+      <div class="card-header">
+        <span class="card-title">Activity Log</span>
+        <button class="btn btn-sm btn-outline" onclick="clearLog()">Clear</button>
       </div>
-      <div class="card">
-        <div class="card-title">🔧 Tech Stack</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">⟠</div><div style="font-weight:600;font-size:14px;">Solidity 0.8.24</div><div style="font-size:12px;color:var(--text-dim);">Smart Contracts</div></div>
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">🔗</div><div style="font-weight:600;font-size:14px;">Chainlink</div><div style="font-size:12px;color:var(--text-dim);">Price Oracle</div></div>
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">🛡</div><div style="font-weight:600;font-size:14px;">OpenZeppelin v5</div><div style="font-size:12px;color:var(--text-dim);">ERC-20 & Access</div></div>
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">⚒</div><div style="font-weight:600;font-size:14px;">Hardhat 3</div><div style="font-size:12px;color:var(--text-dim);">Deploy & Verify</div></div>
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">📜</div><div style="font-weight:600;font-size:14px;">ethers.js v6</div><div style="font-size:12px;color:var(--text-dim);">Frontend SDK</div></div>
-          <div style="padding:16px;background:var(--bg-dark);border-radius:10px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">🦊</div><div style="font-weight:600;font-size:14px;">MetaMask</div><div style="font-size:12px;color:var(--text-dim);">Wallet</div></div>
-        </div>
-      </div>
+      <div class="log-body" id="logBody"></div>
     </div>
 
-    <!-- How -->
-    <div class="panel" id="panel-how">
-      <div class="card">
-        <div class="card-title">📖 How Delta-Neutral Hedging Works</div>
-        <div style="display:flex;flex-direction:column;gap:20px;">
-          <div style="display:flex;gap:16px;align-items:flex-start;"><div style="min-width:36px;height:36px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);">1</div><div><div style="font-weight:600;margin-bottom:4px;">Hold Spot Position</div><div style="color:var(--text-dim);font-size:14px;line-height:1.6;">You hold ETH as a spot position. If ETH drops, your portfolio loses value.</div></div></div>
-          <div style="display:flex;gap:16px;align-items:flex-start;"><div style="min-width:36px;height:36px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);">2</div><div><div style="font-weight:600;margin-bottom:4px;">Open Short Perpetual</div><div style="color:var(--text-dim);font-size:14px;line-height:1.6;">Deposit HDGT collateral and open a short perpetual position equal to your spot exposure.</div></div></div>
-          <div style="display:flex;gap:16px;align-items:flex-start;"><div style="min-width:36px;height:36px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);">3</div><div><div style="font-weight:600;margin-bottom:4px;">Delta Neutrality</div><div style="color:var(--text-dim);font-size:14px;line-height:1.6;">With 100% hedge, spot losses = short gains. Net exposure becomes zero.</div></div></div>
-          <div style="display:flex;gap:16px;align-items:flex-start;"><div style="min-width:36px;height:36px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);">4</div><div><div style="font-weight:600;margin-bottom:4px;">Manage Funding Costs</div><div style="color:var(--text-dim);font-size:14px;line-height:1.6;">Perpetual swaps have 8-hourly funding payments — the ongoing cost of hedging.</div></div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">⚖️ Trade-offs</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div style="padding:20px;background:var(--accent-dim);border:1px solid rgba(0,229,160,0.2);border-radius:12px;"><div style="font-weight:700;color:var(--accent);margin-bottom:10px;">✓ Benefits</div><div style="color:var(--text-dim);font-size:14px;line-height:1.8;">• Eliminates directional price risk<br>• Adjustable hedge ratio<br>• Leverage reduces capital<br>• On-chain & permissionless</div></div>
-          <div style="padding:20px;background:var(--red-dim);border:1px solid rgba(255,71,87,0.2);border-radius:12px;"><div style="font-weight:700;color:var(--red);margin-bottom:10px;">✗ Costs</div><div style="color:var(--text-dim);font-size:14px;line-height:1.8;">• Funding rate payments<br>• Full hedge = no upside<br>• Liquidation risk<br>• Gas costs</div></div>
-        </div>
-      </div>
+    <!-- Contract Links -->
+    <div class="contracts-bar">
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xeC0e3ED3e5fEF17cBf63e5708bbE3102901f9075" target="_blank"><span>Vault</span> 0xeC0e…9075</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x16B90C17CE984F58BE4D854b29E56D0423B53411" target="_blank"><span>Engine</span> 0x16B9…3411</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xc09f6F91ECf8a3d81B9A081C14dEBd6E70338e2d" target="_blank"><span>Bank</span> 0xc09f…8e2d</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x6cE5Fbe79E5300Da95c267bAFA82d8f72dc1BF58" target="_blank"><span>Oracle</span> 0x6cE5…BF58</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x49fD8D722Ff72d2f6E86a37911ee56358CFCcF52" target="_blank"><span>Risk</span> 0x49fD…cF52</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x779877A7B0D9E8603169DdbD7836e478b4624789" target="_blank"><span>LINK</span> 0x7798…4789</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43" target="_blank"><span>Feed</span> 0x1b44…Ee43</a>
     </div>
 
-  </main>
-  <footer class="footer">HedgeX — Blockchain Final Project · Live on Sepolia · Solidity 0.8.24 · Hardhat 3 · Chainlink · OpenZeppelin v5 · ethers.js v6</footer>
+  </div>
 </div>
 
 <script>
+// ─── Contract Addresses ───
 const ADDR = {
-  token:    '0xf71CCd154E35cc59F59A8bcBbE67d9E296e077a8',
-  engine:   '0x11c8436E701D425993fB4A0C3aefCEc4d5607D33',
-  strategy: '0x36dd2f71b41d456a03493Da1388BeeF3182bd7F3',
-  chainlink: '0x694AA1769357215DE4FAC081bf1f309aDC325306'
+  vault:    '0xeC0e3ED3e5fEF17cBf63e5708bbE3102901f9075',
+  engine:   '0x16B90C17CE984F58BE4D854b29E56D0423B53411',
+  bank:     '0xc09f6F91ECf8a3d81B9A081C14dEBd6E70338e2d',
+  oracle:   '0x6cE5Fbe79E5300Da95c267bAFA82d8f72dc1BF58',
+  risk:     '0x49fD8D722Ff72d2f6E86a37911ee56358CFCcF52',
+  link:     '0x779877A7B0D9E8603169DdbD7836e478b4624789',
+  feed:     '0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43',
 };
 
-const ABI = {
-  token: [
-    'function balanceOf(address) view returns (uint256)',
-    'function approve(address spender, uint256 amount) returns (bool)',
-    'function allowance(address owner, address spender) view returns (uint256)',
-    'function transfer(address to, uint256 value) returns (bool)',
-    'function decimals() view returns (uint8)',
-    'function symbol() view returns (string)'
-  ],
-  engine: [
-    'function depositCollateral(uint256 _amount)',
-    'function withdrawCollateral(uint256 _amount)',
-    'function openPosition(bool _isLong, uint256 _sizeUSD, uint256 _leverage)',
-    'function closePosition()',
-    'function getLatestPrice() view returns (uint256)',
-    'function getUnrealizedPnL(address _trader) view returns (int256)',
-    'function getMarginRatio(address _trader) view returns (int256)',
-    'function freeCollateral(address) view returns (uint256)',
-    'function positions(address) view returns (bool isLong, uint256 size, uint256 entryPrice, uint256 collateral, int256 entryFundingRate, uint256 openTimestamp)',
-    'function maxLeverage() view returns (uint256)',
-    'function maintenanceMarginRate() view returns (uint256)',
-    'function fundingInterval() view returns (uint256)',
-    'function liquidationReward() view returns (uint256)',
-    'function totalLongSize() view returns (uint256)',
-    'function totalShortSize() view returns (uint256)',
-    'function cumulativeFundingRate() view returns (int256)',
-    'function settleFunding()',
-    'function liquidate(address _trader)'
-  ],
-  strategy: [
-    'function openHedge(uint256 _spotValueUSD, uint256 _hedgeRatio, uint256 _collateralAmount, uint256 _leverage)',
-    'function closeHedge()',
-    'function simulateHedge(uint256 _spotValueUSD, uint256 _hedgeRatio, uint256 _entryPrice, uint256 _exitPrice) pure returns (int256 spotPnL, int256 hedgePnL, int256 netPnL)',
-    'function getHedgeStatus(address _user) view returns (bool isActive, uint256 spotValueUSD, uint256 hedgeRatio, uint256 collateralUsed, uint256 openTimestamp)',
-    'function getCurrentPrice() view returns (uint256)',
-    'function getHedgePnL() view returns (int256)'
-  ]
-};
+// ─── ABIs (minimal) ───
+const VAULT_ABI = [
+  "function depositCollateral(uint256 amount) external",
+  "function withdrawCollateral(uint256 amount) external",
+  "function openHedge(uint256 spotValueUsd, uint256 hedgeRatioBps, uint256 collateralBase) external returns (uint256)",
+  "function closeHedge() external",
+  "function simulateHedge(uint256 spotValueUsd, uint256 hedgeRatioBps, uint256 entryPrice, uint256 exitPrice) external pure returns (int256 spotPnlUsd, int256 hedgePnlUsd, int256 netPnlUsd)",
+  "function getCurrentPrice() external view returns (uint256)",
+  "function getUserMarginState(address user) external view returns (uint256 totalBalance, uint256 reserved, uint256 freeBal)",
+  "function hedgeAccounts(address) external view returns (uint256 activePositionId, uint256 spotValueUsd, uint256 hedgeRatioBps, uint256 collateralBase, bool active)",
+];
 
+const ENGINE_ABI = [
+  "function positions(uint256) external view returns (uint256 id, address owner, address operator, bool isLong, uint256 sizeUsd, uint256 entryPrice, uint256 collateralBase, int256 entryFundingIndex, uint256 openedAt, bool isOpen)",
+  "function getPositionHealth(uint256 positionId) external view returns (int256 equityBase, uint256 maintenanceMarginBase, int256 pnlBase, int256 fundingBase, uint256 markPrice)",
+  "function getUnrealizedPnL(uint256 positionId) external view returns (int256)",
+  "function getPositionIds(address user) external view returns (uint256[] memory)",
+  "function totalLongSizeUsd() external view returns (uint256)",
+  "function totalShortSizeUsd() external view returns (uint256)",
+  "function cumulativeFundingIndex() external view returns (int256)",
+  "function settleFunding() external",
+];
+
+const ORACLE_ABI = [
+  "function getMarkPrice() external view returns (uint256)",
+  "function isPriceFresh() external view returns (bool)",
+  "function stalePeriod() external view returns (uint256)",
+];
+
+const RISK_ABI = [
+  "function maxLeverageBps() external view returns (uint256)",
+  "function maintenanceMarginBps() external view returns (uint256)",
+  "function liquidationFeeBps() external view returns (uint256)",
+];
+
+const BANK_ABI = [
+  "function userBalances(address) external view returns (uint256)",
+  "function reservedMargin(address) external view returns (uint256)",
+  "function freeBalance(address) external view returns (uint256)",
+];
+
+const ERC20_ABI = [
+  "function balanceOf(address) external view returns (uint256)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function symbol() external view returns (string)",
+  "function decimals() external view returns (uint8)",
+];
+
+// ─── State ───
 let provider, signer, userAddr;
-let tokenContract, engineContract, strategyContract;
-let tokenRead, engineRead, strategyRead, chainlinkRead;
+let vault, engine, oracle, risk, bank, linkToken;
 
-function log(id, msg, type='info') {
-  const el = document.getElementById(id);
-  const time = new Date().toLocaleTimeString();
-  el.innerHTML += `\n<span class="${type}">[${time}] ${msg}</span>`;
+// ─── Log ───
+function log(msg, type = '') {
+  const el = document.getElementById('logBody');
+  const ts = new Date().toLocaleTimeString();
+  el.innerHTML += `<div class="log-line ${type}">[${ts}] ${msg}</div>`;
   el.scrollTop = el.scrollHeight;
 }
+function clearLog() { document.getElementById('logBody').innerHTML = ''; }
 
+// ─── Format helpers ───
+function fmtPrice(val) { return (Number(val) / 1e8).toFixed(2); }
+function fmtLink(val) { return (Number(ethers.formatEther(val))).toFixed(4); }
+function fmtUsd8(val) { return '$' + (Number(val) / 1e8).toFixed(2); }
+function fmtSignedUsd8(val) {
+  const n = Number(val) / 1e8;
+  return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2);
+}
+function fmtSignedLink(val) {
+  const n = Number(ethers.formatEther(val));
+  return (n >= 0 ? '+' : '') + n.toFixed(6) + ' LINK';
+}
+
+// ─── Connect Wallet ───
 async function connectWallet() {
-  const statusEl = document.getElementById('priceSource');
   try {
-    if (!window.ethereum) { alert('Please install MetaMask!'); return; }
-    statusEl.textContent = 'Connecting...';
+    if (!window.ethereum) { alert('Please install MetaMask'); return; }
     provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send('eth_requestAccounts', []);
+    const network = await provider.getNetwork();
+    if (Number(network.chainId) !== 11155111) {
+      log('Wrong network — please switch to Sepolia', 'err');
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0xaa36a7' }],
+        });
+        provider = new ethers.BrowserProvider(window.ethereum);
+      } catch (e) { return; }
+    }
     signer = await provider.getSigner();
     userAddr = await signer.getAddress();
 
-    document.getElementById('connectBtn').textContent = userAddr.slice(0,6) + '...' + userAddr.slice(-4);
-    document.getElementById('connectBtn').classList.add('connected');
-    document.getElementById('netDot').classList.remove('disconnected');
-    document.getElementById('netLabel').textContent = 'Sepolia';
-    statusEl.textContent = 'Wallet connected, loading data...';
+    // Init contracts
+    vault     = new ethers.Contract(ADDR.vault, VAULT_ABI, signer);
+    engine    = new ethers.Contract(ADDR.engine, ENGINE_ABI, signer);
+    oracle    = new ethers.Contract(ADDR.oracle, ORACLE_ABI, provider);
+    risk      = new ethers.Contract(ADDR.risk, RISK_ABI, provider);
+    bank      = new ethers.Contract(ADDR.bank, BANK_ABI, provider);
+    linkToken = new ethers.Contract(ADDR.link, ERC20_ABI, signer);
 
-    tokenContract = new ethers.Contract(ADDR.token, ABI.token, signer);
-    engineContract = new ethers.Contract(ADDR.engine, ABI.engine, signer);
-    strategyContract = new ethers.Contract(ADDR.strategy, ABI.strategy, signer);
+    const btn = document.getElementById('connectBtn');
+    btn.textContent = userAddr.slice(0, 6) + '…' + userAddr.slice(-4);
+    btn.classList.add('connected');
 
-    // Try multiple RPCs for read calls
-    const rpcs = [
-      'https://ethereum-sepolia-rpc.publicnode.com',
-      'https://sepolia.gateway.tenderly.co',
-      'https://rpc2.sepolia.org',
-      'https://rpc.sepolia.org'
-    ];
-    let readProvider = null;
-    for (const rpc of rpcs) {
-      try {
-        const p = new ethers.JsonRpcProvider(rpc);
-        await p.getBlockNumber();
-        readProvider = p;
-        console.log('Using RPC:', rpc);
-        break;
-      } catch(e) { console.warn('RPC failed:', rpc); }
-    }
-    if (!readProvider) readProvider = provider; // fallback to MetaMask
-
-    tokenRead = new ethers.Contract(ADDR.token, ABI.token, readProvider);
-    engineRead = new ethers.Contract(ADDR.engine, ABI.engine, readProvider);
-    strategyRead = new ethers.Contract(ADDR.strategy, ABI.strategy, readProvider);
-
-    const chainlinkABI = ['function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)'];
-    chainlinkRead = new ethers.Contract(ADDR.chainlink, chainlinkABI, readProvider);
-
-    await refreshData();
-    statusEl.textContent = 'All data loaded';
+    log(`Connected: ${userAddr}`, 'ok');
+    refreshAll();
   } catch (e) {
-    statusEl.textContent = 'Error: ' + e.message;
-    console.error('Connect error:', e);
+    log('Connect failed: ' + e.message, 'err');
   }
 }
 
-async function refreshData() {
-  // Each fetch is independent — one failure won't block others
-  try {
-    const balance = await tokenRead.balanceOf(userAddr);
-    document.getElementById('hdgtBalance').textContent = Number(ethers.formatEther(balance)).toLocaleString();
-  } catch(e) { console.error('Balance error:', e); document.getElementById('hdgtBalance').textContent = '0'; }
-
-  try {
-    const freeCol = await engineRead.freeCollateral(userAddr);
-    document.getElementById('freeCollateral').textContent = Number(ethers.formatEther(freeCol)).toLocaleString();
-  } catch(e) { console.error('Collateral error:', e); document.getElementById('freeCollateral').textContent = '0'; }
-
-  try {
-    const clABI = ['function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)'];
-    const rpcs = [
-      'https://rpc.sepolia.org',
-      'https://ethereum-sepolia-rpc.publicnode.com',
-      'https://sepolia.gateway.tenderly.co',
-      'https://rpc2.sepolia.org',
-      'https://1rpc.io/sepolia'
-    ];
-    let price = null;
-    for (const rpc of rpcs) {
-      try {
-        const p = new ethers.JsonRpcProvider(rpc);
-        const cl = new ethers.Contract(ADDR.chainlink, clABI, p);
-        const result = await cl.latestRoundData();
-        if (result[1] > 0n) { price = result[1]; break; }
-      } catch(err) { continue; }
-    }
-    if (price) {
-      document.getElementById('ethPrice').textContent = '$' + (Number(price) / 1e8).toLocaleString(undefined, {minimumFractionDigits:2});
-      document.getElementById('priceSource').textContent = 'Chainlink Oracle (live)';
-    } else {
-      document.getElementById('ethPrice').textContent = '$2,048.00';
-      document.getElementById('priceSource').textContent = 'Fallback price (RPCs unavailable)';
-    }
-  } catch(e) {
-    console.error('Price error:', e);
-    document.getElementById('ethPrice').textContent = '$2,048.00';
-    document.getElementById('priceSource').textContent = 'Fallback price';
-  }
-
-  try {
-    const hedge = await strategyRead.getHedgeStatus(userAddr);
-    document.getElementById('hedgeStatus').textContent = hedge[0] ? 'Active' : 'None';
-    document.getElementById('hedgeStatus').style.color = hedge[0] ? 'var(--accent)' : 'var(--text-dim)';
-    document.getElementById('hedgeSub').textContent = hedge[0] ? 'Ratio: ' + (Number(hedge[2])/100) + '%' : '';
-  } catch(e) { console.error('Hedge status error:', e); document.getElementById('hedgeStatus').textContent = 'N/A'; }
-
-  try {
-    const maxLev = await engineRead.maxLeverage();
-    document.getElementById('paramLeverage').textContent = maxLev.toString() + 'x';
-    const margin = await engineRead.maintenanceMarginRate();
-    document.getElementById('paramMargin').textContent = (Number(margin)/100).toFixed(1) + '%';
-    const interval = await engineRead.fundingInterval();
-    document.getElementById('paramFunding').textContent = (Number(interval)/3600) + ' hrs';
-    const liqReward = await engineRead.liquidationReward();
-    document.getElementById('paramLiqReward').textContent = (Number(liqReward)/100).toFixed(1) + '%';
-    const longSize = await engineRead.totalLongSize();
-    document.getElementById('paramLong').textContent = longSize.toString();
-    const shortSize = await engineRead.totalShortSize();
-    document.getElementById('paramShort').textContent = shortSize.toString();
-  } catch(e) { console.error('Params error:', e); }
+// ─── Refresh All Data ───
+async function refreshAll() {
+  if (!userAddr) return;
+  refreshPrice();
+  refreshLinkBalance();
+  refreshMargin();
+  refreshRiskParams();
+  refreshHedgeStatus();
 }
 
-async function runSimulation() {
-  const spot = document.getElementById('simSpot').value;
-  const ratio = document.getElementById('simRatio').value;
-  const entry = document.getElementById('simEntry').value;
-  const exit = document.getElementById('simExit').value;
-
-  const spotRaw = BigInt(spot) * 100000000n;
-  const entryRaw = BigInt(entry) * 100000000n;
-  const exitRaw = BigInt(exit) * 100000000n;
-
-  log('simLog', `Calling simulateHedge(${spotRaw}, ${ratio}, ${entryRaw}, ${exitRaw})...`, 'pending');
-
+async function refreshPrice() {
   try {
-    let result;
-    if (strategyRead) {
-      result = await strategyRead.simulateHedge(spotRaw, BigInt(ratio), entryRaw, exitRaw);
-      log('simLog', '✓ On-chain result received from HedgingStrategy contract', 'success');
-    } else {
-      const priceChange = (Number(exit) - Number(entry)) / Number(entry);
-      const spotPnl = priceChange * Number(spot);
-      const hedgeSize = Number(spot) * Number(ratio) / 10000;
-      const hedgePnl = -priceChange * hedgeSize;
-      result = [BigInt(Math.round(spotPnl * 1e8)), BigInt(Math.round(hedgePnl * 1e8)), BigInt(Math.round((spotPnl + hedgePnl) * 1e8))];
-      log('simLog', 'Computed locally (connect wallet for on-chain call)', 'info');
-    }
-
-    document.getElementById('simResults').style.display = 'grid';
-    displayPnl('simSpotPnl', result[0]);
-    displayPnl('simHedgePnl', result[1]);
-    displayPnl('simNetPnl', result[2]);
+    const price = await oracle.getMarkPrice();
+    document.getElementById('ethPrice').textContent = '$' + fmtPrice(price);
+    const fresh = await oracle.isPriceFresh();
+    document.getElementById('priceFresh').textContent = fresh ? '● Price fresh' : '⚠ Stale price';
+    document.getElementById('priceFresh').style.color = fresh ? 'var(--accent)' : 'var(--danger)';
   } catch (e) {
-    log('simLog', 'Error: ' + e.message, 'error');
+    document.getElementById('ethPrice').textContent = 'Error';
+    log('Price fetch error: ' + e.message, 'err');
   }
 }
 
-function displayPnl(id, raw) {
-  const val = Number(raw) / 1e8;
-  const el = document.getElementById(id);
-  el.textContent = (val >= 0 ? '+$' : '-$') + Math.abs(val).toLocaleString(undefined, {maximumFractionDigits:0});
-  if (Math.abs(val) < 0.01) { el.textContent = '$0'; el.className = 'result-value zero'; }
-  else el.className = 'result-value ' + (val > 0 ? 'positive' : 'negative');
-}
-
-function loadSim(s, r, en, ex) {
-  document.getElementById('simSpot').value = s;
-  document.getElementById('simRatio').value = r;
-  document.getElementById('simEntry').value = en;
-  document.getElementById('simExit').value = ex;
-  runSimulation();
-}
-
-async function approveToken() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  const amt = document.getElementById('depositAmt').value;
-  const target = document.getElementById('approveTo').value === 'engine' ? ADDR.engine : ADDR.strategy;
-  const targetName = document.getElementById('approveTo').value === 'engine' ? 'PerpetualEngine' : 'HedgingStrategy';
-  log('depositLog', `Approving ${amt} HDGT to ${targetName}...`, 'pending');
+async function refreshLinkBalance() {
   try {
-    const tx = await tokenContract.approve(target, amt);
-    log('depositLog', `TX sent: ${tx.hash}`, 'pending');
+    const bal = await linkToken.balanceOf(userAddr);
+    document.getElementById('linkBalance').textContent = fmtLink(bal) + ' LINK';
+    const allowance = await linkToken.allowance(userAddr, ADDR.bank);
+    document.getElementById('linkAllowance').textContent = 'Allowance: ' + fmtLink(allowance) + ' LINK';
+  } catch (e) {
+    document.getElementById('linkBalance').textContent = 'Error';
+    log('LINK balance error: ' + e.message, 'err');
+  }
+}
+
+async function refreshMargin() {
+  try {
+    const [total, reserved, free] = await vault.getUserMarginState(userAddr);
+    document.getElementById('marginTotal').textContent = fmtLink(total) + ' / ' + fmtLink(free);
+    document.getElementById('marginDetail').textContent = 'Reserved: ' + fmtLink(reserved) + ' LINK';
+  } catch (e) {
+    document.getElementById('marginTotal').textContent = 'Error';
+    log('Margin state error: ' + e.message, 'err');
+  }
+}
+
+async function refreshRiskParams() {
+  try {
+    const maxLev = await risk.maxLeverageBps();
+    const mmBps = await risk.maintenanceMarginBps();
+    const liqFee = await risk.liquidationFeeBps();
+    document.getElementById('riskParams').textContent = (Number(maxLev) / 10000).toFixed(0) + 'x Leverage';
+    document.getElementById('riskDetail').textContent =
+      'MM: ' + (Number(mmBps) / 100).toFixed(1) + '% | Liq Fee: ' + (Number(liqFee) / 100).toFixed(1) + '%';
+  } catch (e) {
+    document.getElementById('riskParams').textContent = 'Error';
+    log('Risk params error: ' + e.message, 'err');
+  }
+}
+
+async function refreshHedgeStatus() {
+  try {
+    const acct = await vault.hedgeAccounts(userAddr);
+    if (acct.active) {
+      document.getElementById('hedgeStatus').textContent = 'Active #' + acct.activePositionId.toString();
+      document.getElementById('hedgeStatus').style.color = 'var(--accent)';
+      const ratio = Number(acct.hedgeRatioBps) / 100;
+      document.getElementById('hedgeDetail').textContent =
+        fmtUsd8(acct.spotValueUsd) + ' @ ' + ratio.toFixed(0) + '% hedge';
+      refreshPositionFromId(Number(acct.activePositionId));
+    } else {
+      document.getElementById('hedgeStatus').textContent = 'None';
+      document.getElementById('hedgeStatus').style.color = 'var(--text2)';
+      document.getElementById('hedgeDetail').textContent = 'No active hedge';
+      clearPositionInfo();
+    }
+  } catch (e) {
+    document.getElementById('hedgeStatus').textContent = 'Error';
+    log('Hedge status error: ' + e.message, 'err');
+  }
+}
+
+// ─── Position Info ───
+async function refreshPositionFromId(posId) {
+  try {
+    const pos = await engine.positions(posId);
+    document.getElementById('posId').textContent = '#' + posId;
+    document.getElementById('posDir').textContent = pos.isLong ? 'LONG' : 'SHORT';
+    document.getElementById('posSize').textContent = fmtUsd8(pos.sizeUsd);
+    document.getElementById('posEntry').textContent = '$' + fmtPrice(pos.entryPrice);
+    document.getElementById('posCollateral').textContent = fmtLink(pos.collateralBase) + ' LINK';
+
+    try {
+      const health = await engine.getPositionHealth(posId);
+      document.getElementById('posEquity').textContent = fmtSignedLink(health.equityBase);
+      document.getElementById('posPnl').textContent = fmtSignedLink(health.pnlBase);
+      const pnlNum = Number(ethers.formatEther(health.pnlBase));
+      document.getElementById('posPnl').className = 'value ' + (pnlNum >= 0 ? 'green' : 'red');
+      document.getElementById('posMM').textContent = fmtLink(health.maintenanceMarginBase) + ' LINK';
+
+      const equityNum = Number(ethers.formatEther(health.equityBase));
+      const mmNum = Number(ethers.formatEther(health.maintenanceMarginBase));
+      const badge = document.getElementById('healthBadge');
+      if (equityNum > mmNum * 2) {
+        badge.textContent = 'Healthy'; badge.className = 'card-badge';
+      } else if (equityNum > mmNum) {
+        badge.textContent = 'Warning'; badge.className = 'card-badge warn';
+      } else {
+        badge.textContent = 'Danger'; badge.className = 'card-badge danger';
+      }
+    } catch (e) {
+      log('Position health error: ' + e.message, 'err');
+    }
+  } catch (e) {
+    log('Position fetch error: ' + e.message, 'err');
+  }
+}
+
+function refreshPosition() {
+  refreshHedgeStatus();
+  log('Refreshing position data…', 'info');
+}
+
+function clearPositionInfo() {
+  ['posId','posDir','posSize','posEntry','posCollateral','posEquity','posPnl','posMM'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+    document.getElementById(id).className = 'value';
+  });
+  document.getElementById('healthBadge').textContent = '—';
+  document.getElementById('healthBadge').className = 'card-badge';
+}
+
+// ─── Approve LINK ───
+async function approveLINK() {
+  try {
+    const amtStr = document.getElementById('collateralAmt').value;
+    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    const amt = ethers.parseEther(amtStr);
+    log('Approving ' + amtStr + ' LINK to MarginBank…', 'info');
+    const tx = await linkToken.approve(ADDR.bank, amt);
+    log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('depositLog', `✓ Approved! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('depositLog', 'Error: ' + e.message, 'error'); }
+    log('Approved ' + amtStr + ' LINK ✓', 'ok');
+    refreshLinkBalance();
+  } catch (e) {
+    log('Approve failed: ' + e.message, 'err');
+  }
 }
 
+// ─── Deposit Collateral ───
 async function depositCollateral() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  const amt = document.getElementById('depositAmt').value;
-  log('depositLog', `Depositing ${amt} to PerpetualEngine...`, 'pending');
   try {
-    const tx = await engineContract.depositCollateral(amt);
-    log('depositLog', `TX sent: ${tx.hash}`, 'pending');
+    const amtStr = document.getElementById('collateralAmt').value;
+    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    const amt = ethers.parseEther(amtStr);
+    log('Depositing ' + amtStr + ' LINK…', 'info');
+    const tx = await vault.depositCollateral(amt);
+    log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('depositLog', `✓ Deposited! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('depositLog', 'Error: ' + e.message, 'error'); }
+    log('Deposited ' + amtStr + ' LINK ✓', 'ok');
+    refreshAll();
+  } catch (e) {
+    log('Deposit failed: ' + e.message, 'err');
+  }
 }
 
-async function openPosition() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  const isLong = document.getElementById('posDirection').value === 'true';
-  const size = document.getElementById('posSize').value;
-  const lev = document.getElementById('posLeverage').value;
-  log('posLog', `Opening ${isLong ? 'LONG' : 'SHORT'} position, size=${size}, leverage=${lev}x...`, 'pending');
-  try {
-    const tx = await engineContract.openPosition(isLong, size, lev);
-    log('posLog', `TX sent: ${tx.hash}`, 'pending');
-    await tx.wait();
-    log('posLog', `✓ Position opened! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('posLog', 'Error: ' + e.message, 'error'); }
-}
-
-async function closePosition() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  log('posLog', 'Closing position...', 'pending');
-  try {
-    const tx = await engineContract.closePosition();
-    log('posLog', `TX sent: ${tx.hash}`, 'pending');
-    await tx.wait();
-    log('posLog', `✓ Position closed! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('posLog', 'Error: ' + e.message, 'error'); }
-}
-
-async function openHedge() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  const spot = document.getElementById('hedgeSpot').value;
-  const ratio = document.getElementById('hedgeRatioInput').value;
-  const col = document.getElementById('hedgeCollateral').value;
-  const lev = document.getElementById('hedgeLeverage').value;
-  log('hedgeLog', `Opening hedge: spot=${spot}, ratio=${ratio}, collateral=${col}, leverage=${lev}x...`, 'pending');
-  try {
-    const tx = await strategyContract.openHedge(spot, ratio, col, lev);
-    log('hedgeLog', `TX sent: ${tx.hash}`, 'pending');
-    await tx.wait();
-    log('hedgeLog', `✓ Hedge opened! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('hedgeLog', 'Error: ' + e.message, 'error'); }
-}
-
-async function closeHedge() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  log('hedgeLog', 'Closing hedge...', 'pending');
-  try {
-    const tx = await strategyContract.closeHedge();
-    log('hedgeLog', `TX sent: ${tx.hash}`, 'pending');
-    await tx.wait();
-    log('hedgeLog', `✓ Hedge closed! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('hedgeLog', 'Error: ' + e.message, 'error'); }
-}
-
+// ─── Withdraw Collateral ───
 async function withdrawCollateral() {
-  if (!signer) { alert('Connect wallet first!'); return; }
-  const amt = document.getElementById('withdrawAmt').value;
-  log('withdrawLog', `Withdrawing ${amt}...`, 'pending');
   try {
-    const tx = await engineContract.withdrawCollateral(amt);
-    log('withdrawLog', `TX sent: ${tx.hash}`, 'pending');
+    const amtStr = document.getElementById('collateralAmt').value;
+    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    const amt = ethers.parseEther(amtStr);
+    log('Withdrawing ' + amtStr + ' LINK…', 'info');
+    const tx = await vault.withdrawCollateral(amt);
+    log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('withdrawLog', `✓ Withdrawn! TX: ${tx.hash}`, 'success');
-    await refreshData();
-  } catch (e) { log('withdrawLog', 'Error: ' + e.message, 'error'); }
+    log('Withdrawn ' + amtStr + ' LINK ✓', 'ok');
+    refreshAll();
+  } catch (e) {
+    log('Withdraw failed: ' + e.message, 'err');
+  }
 }
 
-function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('panel-' + name).classList.add('active');
+// ─── Open Hedge ───
+async function openHedge() {
+  try {
+    const spot = document.getElementById('spotValueUsd').value;
+    const ratio = document.getElementById('hedgeRatio').value;
+    const coll = document.getElementById('hedgeCollateral').value;
+    if (!spot || !ratio || !coll) { log('Fill all fields', 'err'); return; }
+    log(`Opening hedge: spot=${spot}, ratio=${ratio}bps, coll=${coll}…`, 'info');
+    const tx = await vault.openHedge(spot, ratio, coll);
+    log('TX sent: ' + tx.hash, 'info');
+    const receipt = await tx.wait();
+    log('Hedge opened ✓', 'ok');
+    refreshAll();
+  } catch (e) {
+    log('Open hedge failed: ' + e.message, 'err');
+  }
 }
 
+// ─── Close Hedge ───
+async function closeHedge() {
+  try {
+    log('Closing hedge…', 'info');
+    const tx = await vault.closeHedge();
+    log('TX sent: ' + tx.hash, 'info');
+    await tx.wait();
+    log('Hedge closed ✓', 'ok');
+    refreshAll();
+  } catch (e) {
+    log('Close hedge failed: ' + e.message, 'err');
+  }
+}
+
+// ─── Simulate Hedge ───
+async function simulateHedge() {
+  try {
+    const spot = document.getElementById('simSpot').value;
+    const ratio = document.getElementById('simRatio').value;
+    const entry = document.getElementById('simEntry').value;
+    const exit = document.getElementById('simExit').value;
+    if (!spot || !ratio || !entry || !exit) { log('Fill all simulation fields', 'err'); return; }
+
+    log(`Simulating: spot=${spot}, ratio=${ratio}, entry=${entry}, exit=${exit}`, 'info');
+    const [spotPnl, hedgePnl, netPnl] = await vault.simulateHedge(spot, ratio, entry, exit);
+
+    document.getElementById('simSpotPnl').textContent = fmtSignedUsd8(spotPnl);
+    document.getElementById('simSpotPnl').style.color = Number(spotPnl) >= 0 ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('simHedgePnl').textContent = fmtSignedUsd8(hedgePnl);
+    document.getElementById('simHedgePnl').style.color = Number(hedgePnl) >= 0 ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('simNetPnl').textContent = fmtSignedUsd8(netPnl);
+    document.getElementById('simNetPnl').style.color = Number(netPnl) >= 0 ? 'var(--accent)' : 'var(--danger)';
+
+    document.getElementById('simResults').classList.add('show');
+    log('Simulation complete ✓', 'ok');
+  } catch (e) {
+    log('Simulation failed: ' + e.message, 'err');
+  }
+}
+
+// ─── Auto-refresh ───
+setInterval(() => { if (userAddr) refreshPrice(); }, 30000);
+
+// ─── Listen for account / network changes ───
 if (window.ethereum) {
   window.ethereum.on('accountsChanged', () => location.reload());
   window.ethereum.on('chainChanged', () => location.reload());
