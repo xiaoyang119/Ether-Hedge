@@ -392,11 +392,11 @@
 
     <!-- Contract Links -->
     <div class="contracts-bar">
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xeC0e3ED3e5fEF17cBf63e5708bbE3102901f9075" target="_blank"><span>Vault</span> 0xeC0e…9075</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x16B90C17CE984F58BE4D854b29E56D0423B53411" target="_blank"><span>Engine</span> 0x16B9…3411</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xc09f6F91ECf8a3d81B9A081C14dEBd6E70338e2d" target="_blank"><span>Bank</span> 0xc09f…8e2d</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x6cE5Fbe79E5300Da95c267bAFA82d8f72dc1BF58" target="_blank"><span>Oracle</span> 0x6cE5…BF58</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x49fD8D722Ff72d2f6E86a37911ee56358CFCcF52" target="_blank"><span>Risk</span> 0x49fD…cF52</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x0f6230e89d3e4740b9bcf96822fc4697e60fcd23" target="_blank"><span>Vault</span> 0x0f62…cd23</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x13b8af01bc24679e46b0a4337309f6cc42700515" target="_blank"><span>Engine</span> 0x13b8…0515</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x572da6dae1d0fba4ad2fae2d59da68702e44c435" target="_blank"><span>Bank</span> 0x572d…c435</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xb5064fe9407d646e425ac3c86e9c533bff046b1a" target="_blank"><span>Oracle</span> 0xb506…6b1a</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x779f77def6dd09ad3471fdae33eb2efd86c27ddb" target="_blank"><span>Risk</span> 0x779f…7ddb</a>
       <a class="contract-link" href="https://sepolia.etherscan.io/address/0x779877A7B0D9E8603169DdbD7836e478b4624789" target="_blank"><span>LINK</span> 0x7798…4789</a>
       <a class="contract-link" href="https://sepolia.etherscan.io/address/0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43" target="_blank"><span>Feed</span> 0x1b44…Ee43</a>
     </div>
@@ -407,11 +407,11 @@
 <script>
 // ─── Contract Addresses ───
 const ADDR = {
-  vault:    '0xeC0e3ED3e5fEF17cBf63e5708bbE3102901f9075',
-  engine:   '0x16B90C17CE984F58BE4D854b29E56D0423B53411',
-  bank:     '0xc09f6F91ECf8a3d81B9A081C14dEBd6E70338e2d',
-  oracle:   '0x6cE5Fbe79E5300Da95c267bAFA82d8f72dc1BF58',
-  risk:     '0x49fD8D722Ff72d2f6E86a37911ee56358CFCcF52',
+  vault:    '0x0f6230e89d3e4740b9bcf96822fc4697e60fcd23',
+  engine:   '0x13b8af01bc24679e46b0a4337309f6cc42700515',
+  bank:     '0x572da6dae1d0fba4ad2fae2d59da68702e44c435',
+  oracle:   '0xb5064fe9407d646e425ac3c86e9c533bff046b1a',
+  risk:     '0x779f77def6dd09ad3471fdae33eb2efd86c27ddb',
   link:     '0x779877A7B0D9E8603169DdbD7836e478b4624789',
   feed:     '0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43',
 };
@@ -441,8 +441,11 @@ const ENGINE_ABI = [
 
 const ORACLE_ABI = [
   "function getMarkPrice() external view returns (uint256)",
-  "function isPriceFresh() external view returns (bool)",
-  "function stalePeriod() external view returns (uint256)",
+  "function getRawPrice() external view returns (int256 answer, uint256 updatedAt, uint8 decimals)",
+  "function staleAfter() external view returns (uint256)",
+  "function minAnswer() external view returns (uint256)",
+  "function maxAnswer() external view returns (uint256)",
+  "function priceFeed() external view returns (address)",
 ];
 
 const RISK_ABI = [
@@ -541,14 +544,37 @@ async function refreshAll() {
 
 async function refreshPrice() {
   try {
+    // Try getMarkPrice first (will revert if stale/out-of-bounds)
     const price = await oracle.getMarkPrice();
     document.getElementById('ethPrice').textContent = '$' + fmtPrice(price);
-    const fresh = await oracle.isPriceFresh();
-    document.getElementById('priceFresh').textContent = fresh ? '● Price fresh' : '⚠ Stale price';
-    document.getElementById('priceFresh').style.color = fresh ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('priceFresh').textContent = '● Price fresh';
+    document.getElementById('priceFresh').style.color = 'var(--accent)';
   } catch (e) {
-    document.getElementById('ethPrice').textContent = 'Error';
-    log('Price fetch error: ' + e.message, 'err');
+    // getMarkPrice failed — try getRawPrice to show stale data
+    try {
+      const raw = await oracle.getRawPrice();
+      const rawPrice = Number(raw.answer);
+      const updatedAt = Number(raw.updatedAt);
+      const staleAfter = Number(await oracle.staleAfter());
+      const age = Math.floor(Date.now() / 1000) - updatedAt;
+      const ageMins = Math.floor(age / 60);
+
+      if (rawPrice > 0) {
+        // Normalize: if decimals != 8, adjust
+        const decimals = Number(raw.decimals);
+        const normalized = decimals === 8 ? rawPrice : rawPrice * (10 ** (8 - decimals));
+        document.getElementById('ethPrice').textContent = '$' + (normalized / 1e8).toFixed(2);
+        document.getElementById('priceFresh').textContent = `⚠ Stale (${ageMins}m ago, limit ${staleAfter/60}m)`;
+        document.getElementById('priceFresh').style.color = 'var(--warning)';
+        log(`Oracle stale: price updated ${ageMins}m ago, staleAfter=${staleAfter}s`, 'err');
+      } else {
+        document.getElementById('ethPrice').textContent = 'Error';
+        log('Oracle returned negative/zero price', 'err');
+      }
+    } catch (e2) {
+      document.getElementById('ethPrice').textContent = 'Error';
+      log('Price fetch error: ' + e.message, 'err');
+    }
   }
 }
 
