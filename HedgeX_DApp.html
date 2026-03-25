@@ -252,7 +252,7 @@
       <div class="stat-sub" id="priceFresh"></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">LINK Balance (Wallet)</div>
+      <div class="stat-label">HDGT Balance (Wallet)</div>
       <div class="stat-value" id="linkBalance">—</div>
       <div class="stat-sub" id="linkAllowance"></div>
     </div>
@@ -280,15 +280,15 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Collateral Management</span>
-        <span class="card-badge">LINK</span>
+        <span class="card-badge">HDGT</span>
       </div>
       <div class="card-body">
         <div class="form-group">
-          <label class="form-label">Amount (LINK)</label>
+          <label class="form-label">Amount (HDGT)</label>
           <input class="form-input" id="collateralAmt" type="text" placeholder="0.1">
         </div>
         <div class="btn-row">
-          <button class="btn btn-outline" onclick="approveLINK()">Approve</button>
+          <button class="btn btn-outline" onclick="approveHDGT()">Approve</button>
           <button class="btn btn-primary" onclick="depositCollateral()">Deposit</button>
         </div>
         <button class="btn btn-outline" onclick="withdrawCollateral()" style="margin-top:8px">Withdraw</button>
@@ -314,9 +314,9 @@
             <div class="form-hint">10000 = 100%</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Collateral (LINK, 18 dec)</label>
+            <label class="form-label">Collateral (HDGT, 18 dec)</label>
             <input class="form-input" id="hedgeCollateral" type="text" placeholder="100000000000000000">
-            <div class="form-hint">0.1 LINK = 1e17</div>
+            <div class="form-hint">0.1 HDGT = 1e17</div>
           </div>
         </div>
         <button class="btn btn-primary" onclick="openHedge()">Open Hedge Position</button>
@@ -392,13 +392,12 @@
 
     <!-- Contract Links -->
     <div class="contracts-bar">
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x0f6230e89d3e4740b9bcf96822fc4697e60fcd23" target="_blank"><span>Vault</span> 0x0f62…cd23</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x13b8af01bc24679e46b0a4337309f6cc42700515" target="_blank"><span>Engine</span> 0x13b8…0515</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x572da6dae1d0fba4ad2fae2d59da68702e44c435" target="_blank"><span>Bank</span> 0x572d…c435</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xb5064fe9407d646e425ac3c86e9c533bff046b1a" target="_blank"><span>Oracle</span> 0xb506…6b1a</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x779f77def6dd09ad3471fdae33eb2efd86c27ddb" target="_blank"><span>Risk</span> 0x779f…7ddb</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x779877A7B0D9E8603169DdbD7836e478b4624789" target="_blank"><span>LINK</span> 0x7798…4789</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43" target="_blank"><span>Feed</span> 0x1b44…Ee43</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc" target="_blank"><span>HDGT</span> 0x8eb6…53cc</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x9cdff898604459e52f4893d394b567d8b220fe9d" target="_blank"><span>Vault</span> 0x9cdf…fe9d</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x67d6336e7815a93d6558864112838037b5f5f42b" target="_blank"><span>Engine</span> 0x67d6…f42b</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xeb641df51fad8bf6945c7f64491023427241d12b" target="_blank"><span>Bank</span> 0xeb64…d12b</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08" target="_blank"><span>Oracle</span> 0xb3d7…3b08</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xe1f0f15ebd6aa0672e21ab966b4778c15280884f" target="_blank"><span>Risk</span> 0xe1f0…884f</a>
     </div>
 
   </div>
@@ -407,13 +406,12 @@
 <script>
 // ─── Contract Addresses ───
 const ADDR = {
-  vault:    '0x0f6230e89d3e4740b9bcf96822fc4697e60fcd23',
-  engine:   '0x13b8af01bc24679e46b0a4337309f6cc42700515',
-  bank:     '0x572da6dae1d0fba4ad2fae2d59da68702e44c435',
-  oracle:   '0xb5064fe9407d646e425ac3c86e9c533bff046b1a',
-  risk:     '0x779f77def6dd09ad3471fdae33eb2efd86c27ddb',
-  link:     '0x779877A7B0D9E8603169DdbD7836e478b4624789',
-  feed:     '0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43',
+  vault:    '0x9cdff898604459e52f4893d394b567d8b220fe9d',
+  engine:   '0x67d6336e7815a93d6558864112838037b5f5f42b',
+  bank:     '0xeb641df51fad8bf6945c7f64491023427241d12b',
+  oracle:   '0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08',
+  risk:     '0xe1f0f15ebd6aa0672e21ab966b4778c15280884f',
+  hdgt:     '0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc',
 };
 
 // ─── ABIs (minimal) ───
@@ -470,7 +468,7 @@ const ERC20_ABI = [
 
 // ─── State ───
 let provider, signer, userAddr;
-let vault, engine, oracle, risk, bank, linkToken;
+let vault, engine, oracle, risk, bank, hdgtToken;
 
 // ─── Log ───
 function log(msg, type = '') {
@@ -491,7 +489,7 @@ function fmtSignedUsd8(val) {
 }
 function fmtSignedLink(val) {
   const n = Number(ethers.formatEther(val));
-  return (n >= 0 ? '+' : '') + n.toFixed(6) + ' LINK';
+  return (n >= 0 ? '+' : '') + n.toFixed(6) + ' HDGT';
 }
 
 // ─── Connect Wallet ───
@@ -519,7 +517,7 @@ async function connectWallet() {
     oracle    = new ethers.Contract(ADDR.oracle, ORACLE_ABI, provider);
     risk      = new ethers.Contract(ADDR.risk, RISK_ABI, provider);
     bank      = new ethers.Contract(ADDR.bank, BANK_ABI, provider);
-    linkToken = new ethers.Contract(ADDR.link, ERC20_ABI, signer);
+    hdgtToken = new ethers.Contract(ADDR.hdgt, ERC20_ABI, signer);
 
     const btn = document.getElementById('connectBtn');
     btn.textContent = userAddr.slice(0, 6) + '…' + userAddr.slice(-4);
@@ -580,13 +578,13 @@ async function refreshPrice() {
 
 async function refreshLinkBalance() {
   try {
-    const bal = await linkToken.balanceOf(userAddr);
-    document.getElementById('linkBalance').textContent = fmtLink(bal) + ' LINK';
-    const allowance = await linkToken.allowance(userAddr, ADDR.bank);
-    document.getElementById('linkAllowance').textContent = 'Allowance: ' + fmtLink(allowance) + ' LINK';
+    const bal = await hdgtToken.balanceOf(userAddr);
+    document.getElementById('linkBalance').textContent = fmtLink(bal) + ' HDGT';
+    const allowance = await hdgtToken.allowance(userAddr, ADDR.bank);
+    document.getElementById('linkAllowance').textContent = 'Allowance: ' + fmtLink(allowance) + ' HDGT';
   } catch (e) {
     document.getElementById('linkBalance').textContent = 'Error';
-    log('LINK balance error: ' + e.message, 'err');
+    log('HDGT balance error: ' + e.message, 'err');
   }
 }
 
@@ -594,7 +592,7 @@ async function refreshMargin() {
   try {
     const [total, reserved, free] = await vault.getUserMarginState(userAddr);
     document.getElementById('marginTotal').textContent = fmtLink(total) + ' / ' + fmtLink(free);
-    document.getElementById('marginDetail').textContent = 'Reserved: ' + fmtLink(reserved) + ' LINK';
+    document.getElementById('marginDetail').textContent = 'Reserved: ' + fmtLink(reserved) + ' HDGT';
   } catch (e) {
     document.getElementById('marginTotal').textContent = 'Error';
     log('Margin state error: ' + e.message, 'err');
@@ -645,7 +643,7 @@ async function refreshPositionFromId(posId) {
     document.getElementById('posDir').textContent = pos.isLong ? 'LONG' : 'SHORT';
     document.getElementById('posSize').textContent = fmtUsd8(pos.sizeUsd);
     document.getElementById('posEntry').textContent = '$' + fmtPrice(pos.entryPrice);
-    document.getElementById('posCollateral').textContent = fmtLink(pos.collateralBase) + ' LINK';
+    document.getElementById('posCollateral').textContent = fmtLink(pos.collateralBase) + ' HDGT';
 
     try {
       const health = await engine.getPositionHealth(posId);
@@ -653,7 +651,7 @@ async function refreshPositionFromId(posId) {
       document.getElementById('posPnl').textContent = fmtSignedLink(health.pnlBase);
       const pnlNum = Number(ethers.formatEther(health.pnlBase));
       document.getElementById('posPnl').className = 'value ' + (pnlNum >= 0 ? 'green' : 'red');
-      document.getElementById('posMM').textContent = fmtLink(health.maintenanceMarginBase) + ' LINK';
+      document.getElementById('posMM').textContent = fmtLink(health.maintenanceMarginBase) + ' HDGT';
 
       const equityNum = Number(ethers.formatEther(health.equityBase));
       const mmNum = Number(ethers.formatEther(health.maintenanceMarginBase));
@@ -687,17 +685,17 @@ function clearPositionInfo() {
   document.getElementById('healthBadge').className = 'card-badge';
 }
 
-// ─── Approve LINK ───
-async function approveLINK() {
+// ─── Approve HDGT ───
+async function approveHDGT() {
   try {
     const amtStr = document.getElementById('collateralAmt').value;
-    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    if (!amtStr) { log('Enter HDGT amount', 'err'); return; }
     const amt = ethers.parseEther(amtStr);
-    log('Approving ' + amtStr + ' LINK to MarginBank…', 'info');
-    const tx = await linkToken.approve(ADDR.bank, amt);
+    log('Approving ' + amtStr + ' HDGT to MarginBank…', 'info');
+    const tx = await hdgtToken.approve(ADDR.bank, amt);
     log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('Approved ' + amtStr + ' LINK ✓', 'ok');
+    log('Approved ' + amtStr + ' HDGT ✓', 'ok');
     refreshLinkBalance();
   } catch (e) {
     log('Approve failed: ' + e.message, 'err');
@@ -708,13 +706,13 @@ async function approveLINK() {
 async function depositCollateral() {
   try {
     const amtStr = document.getElementById('collateralAmt').value;
-    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    if (!amtStr) { log('Enter HDGT amount', 'err'); return; }
     const amt = ethers.parseEther(amtStr);
-    log('Depositing ' + amtStr + ' LINK…', 'info');
+    log('Depositing ' + amtStr + ' HDGT…', 'info');
     const tx = await vault.depositCollateral(amt);
     log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('Deposited ' + amtStr + ' LINK ✓', 'ok');
+    log('Deposited ' + amtStr + ' HDGT ✓', 'ok');
     refreshAll();
   } catch (e) {
     log('Deposit failed: ' + e.message, 'err');
@@ -725,13 +723,13 @@ async function depositCollateral() {
 async function withdrawCollateral() {
   try {
     const amtStr = document.getElementById('collateralAmt').value;
-    if (!amtStr) { log('Enter LINK amount', 'err'); return; }
+    if (!amtStr) { log('Enter HDGT amount', 'err'); return; }
     const amt = ethers.parseEther(amtStr);
-    log('Withdrawing ' + amtStr + ' LINK…', 'info');
+    log('Withdrawing ' + amtStr + ' HDGT…', 'info');
     const tx = await vault.withdrawCollateral(amt);
     log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
-    log('Withdrawn ' + amtStr + ' LINK ✓', 'ok');
+    log('Withdrawn ' + amtStr + ' HDGT ✓', 'ok');
     refreshAll();
   } catch (e) {
     log('Withdraw failed: ' + e.message, 'err');
