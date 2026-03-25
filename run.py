@@ -1,20 +1,22 @@
-import http.server
-import webbrowser
-import os
-import threading
+#!/usr/bin/env python3
+"""Serve HedgeX DApp on localhost:8000 and auto-open browser"""
+import http.server, socketserver, os, webbrowser, threading
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 PORT = 8000
-DIR = os.path.dirname(os.path.abspath(__file__))
-FILE = "HedgeX_DApp.html"
+URL = f"http://localhost:{PORT}/HedgeX_DApp.html"
+Handler = http.server.SimpleHTTPRequestHandler
 
-os.chdir(DIR)
+# 1秒后自动打开浏览器
+threading.Timer(1.0, lambda: webbrowser.open(URL)).start()
 
-def open_browser():
-    webbrowser.open(f"http://localhost:{PORT}/{FILE}")
+print(f"\n  HedgeX DApp running at: {URL}")
+print(f"  Browser opening automatically...")
+print(f"  Press Ctrl+C to stop\n")
 
-print(f"Starting server at http://localhost:{PORT}/{FILE}")
-print("Press Ctrl+C to stop\n")
-
-threading.Timer(1, open_browser).start()
-
-http.server.HTTPServer(("", PORT), http.server.SimpleHTTPRequestHandler).serve_forever()
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n  Server stopped.")
