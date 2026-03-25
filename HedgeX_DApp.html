@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HedgeX — Delta-Neutral Hedging DApp</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root {
     --bg-dark: #0a0e17;
@@ -561,7 +561,8 @@
 const ADDR = {
   token:    '0xf71CCd154E35cc59F59A8bcBbE67d9E296e077a8',
   engine:   '0x11c8436E701D425993fB4A0C3aefCEc4d5607D33',
-  strategy: '0x36dd2f71b41d456a03493Da1388BeeF3182bd7F3'
+  strategy: '0x36dd2f71b41d456a03493Da1388BeeF3182bd7F3',
+  chainlink: '0x694AA1769357215DE4FAC081bf1f309aDC325306'
 };
 
 const ABI = {
@@ -605,7 +606,7 @@ const ABI = {
 
 let provider, signer, userAddr;
 let tokenContract, engineContract, strategyContract;
-let tokenRead, engineRead, strategyRead;
+let tokenRead, engineRead, strategyRead, chainlinkRead;
 
 function log(id, msg, type='info') {
   const el = document.getElementById(id);
@@ -615,74 +616,123 @@ function log(id, msg, type='info') {
 }
 
 async function connectWallet() {
+  const statusEl = document.getElementById('priceSource');
   try {
     if (!window.ethereum) { alert('Please install MetaMask!'); return; }
+    statusEl.textContent = 'Connecting...';
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send('eth_requestAccounts', []);
     signer = await provider.getSigner();
     userAddr = await signer.getAddress();
-    const network = await provider.getNetwork();
-
-    if (Number(network.chainId) !== 11155111) {
-      alert('Please switch to Sepolia Testnet in MetaMask!');
-      return;
-    }
 
     document.getElementById('connectBtn').textContent = userAddr.slice(0,6) + '...' + userAddr.slice(-4);
     document.getElementById('connectBtn').classList.add('connected');
     document.getElementById('netDot').classList.remove('disconnected');
     document.getElementById('netLabel').textContent = 'Sepolia';
+    statusEl.textContent = 'Wallet connected, loading data...';
 
     tokenContract = new ethers.Contract(ADDR.token, ABI.token, signer);
     engineContract = new ethers.Contract(ADDR.engine, ABI.engine, signer);
     strategyContract = new ethers.Contract(ADDR.strategy, ABI.strategy, signer);
 
-    tokenRead = new ethers.Contract(ADDR.token, ABI.token, provider);
-    engineRead = new ethers.Contract(ADDR.engine, ABI.engine, provider);
-    strategyRead = new ethers.Contract(ADDR.strategy, ABI.strategy, provider);
+    // Try multiple RPCs for read calls
+    const rpcs = [
+      'https://ethereum-sepolia-rpc.publicnode.com',
+      'https://sepolia.gateway.tenderly.co',
+      'https://rpc2.sepolia.org',
+      'https://rpc.sepolia.org'
+    ];
+    let readProvider = null;
+    for (const rpc of rpcs) {
+      try {
+        const p = new ethers.JsonRpcProvider(rpc);
+        await p.getBlockNumber();
+        readProvider = p;
+        console.log('Using RPC:', rpc);
+        break;
+      } catch(e) { console.warn('RPC failed:', rpc); }
+    }
+    if (!readProvider) readProvider = provider; // fallback to MetaMask
+
+    tokenRead = new ethers.Contract(ADDR.token, ABI.token, readProvider);
+    engineRead = new ethers.Contract(ADDR.engine, ABI.engine, readProvider);
+    strategyRead = new ethers.Contract(ADDR.strategy, ABI.strategy, readProvider);
+
+    const chainlinkABI = ['function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)'];
+    chainlinkRead = new ethers.Contract(ADDR.chainlink, chainlinkABI, readProvider);
 
     await refreshData();
+    statusEl.textContent = 'All data loaded';
   } catch (e) {
-    alert('Connection failed: ' + e.message);
+    statusEl.textContent = 'Error: ' + e.message;
+    console.error('Connect error:', e);
   }
 }
 
 async function refreshData() {
+  // Each fetch is independent — one failure won't block others
   try {
-    const [balance, freeCol, price] = await Promise.all([
-      tokenRead.balanceOf(userAddr),
-      engineRead.freeCollateral(userAddr),
-      engineRead.getLatestPrice().catch(() => 0n)
-    ]);
-
+    const balance = await tokenRead.balanceOf(userAddr);
     document.getElementById('hdgtBalance').textContent = Number(ethers.formatEther(balance)).toLocaleString();
-    document.getElementById('freeCollateral').textContent = Number(ethers.formatEther(freeCol)).toLocaleString();
+  } catch(e) { console.error('Balance error:', e); document.getElementById('hdgtBalance').textContent = '0'; }
 
-    if (price > 0n) {
+  try {
+    const freeCol = await engineRead.freeCollateral(userAddr);
+    document.getElementById('freeCollateral').textContent = Number(ethers.formatEther(freeCol)).toLocaleString();
+  } catch(e) { console.error('Collateral error:', e); document.getElementById('freeCollateral').textContent = '0'; }
+
+  try {
+    const clABI = ['function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)'];
+    const rpcs = [
+      'https://rpc.sepolia.org',
+      'https://ethereum-sepolia-rpc.publicnode.com',
+      'https://sepolia.gateway.tenderly.co',
+      'https://rpc2.sepolia.org',
+      'https://1rpc.io/sepolia'
+    ];
+    let price = null;
+    for (const rpc of rpcs) {
+      try {
+        const p = new ethers.JsonRpcProvider(rpc);
+        const cl = new ethers.Contract(ADDR.chainlink, clABI, p);
+        const result = await cl.latestRoundData();
+        if (result[1] > 0n) { price = result[1]; break; }
+      } catch(err) { continue; }
+    }
+    if (price) {
       document.getElementById('ethPrice').textContent = '$' + (Number(price) / 1e8).toLocaleString(undefined, {minimumFractionDigits:2});
       document.getElementById('priceSource').textContent = 'Chainlink Oracle (live)';
+    } else {
+      document.getElementById('ethPrice').textContent = '$2,048.00';
+      document.getElementById('priceSource').textContent = 'Fallback price (RPCs unavailable)';
     }
-
-    const hedge = await strategyRead.getHedgeStatus(userAddr);
-    document.getElementById('hedgeStatus').textContent = hedge.isActive ? 'Active' : 'None';
-    document.getElementById('hedgeStatus').style.color = hedge.isActive ? 'var(--accent)' : 'var(--text-dim)';
-    document.getElementById('hedgeSub').textContent = hedge.isActive ? 'Ratio: ' + (Number(hedge.hedgeRatio)/100) + '%' : '';
-
-    const [maxLev, margin, interval, liqReward, longSize, shortSize] = await Promise.all([
-      engineRead.maxLeverage(), engineRead.maintenanceMarginRate(),
-      engineRead.fundingInterval(), engineRead.liquidationReward(),
-      engineRead.totalLongSize(), engineRead.totalShortSize()
-    ]);
-
-    document.getElementById('paramLeverage').textContent = maxLev.toString() + 'x';
-    document.getElementById('paramMargin').textContent = (Number(margin)/100).toFixed(1) + '%';
-    document.getElementById('paramFunding').textContent = (Number(interval)/3600) + ' hrs';
-    document.getElementById('paramLiqReward').textContent = (Number(liqReward)/100).toFixed(1) + '%';
-    document.getElementById('paramLong').textContent = longSize.toString();
-    document.getElementById('paramShort').textContent = shortSize.toString();
-  } catch (e) {
-    console.error('Refresh error:', e);
+  } catch(e) {
+    console.error('Price error:', e);
+    document.getElementById('ethPrice').textContent = '$2,048.00';
+    document.getElementById('priceSource').textContent = 'Fallback price';
   }
+
+  try {
+    const hedge = await strategyRead.getHedgeStatus(userAddr);
+    document.getElementById('hedgeStatus').textContent = hedge[0] ? 'Active' : 'None';
+    document.getElementById('hedgeStatus').style.color = hedge[0] ? 'var(--accent)' : 'var(--text-dim)';
+    document.getElementById('hedgeSub').textContent = hedge[0] ? 'Ratio: ' + (Number(hedge[2])/100) + '%' : '';
+  } catch(e) { console.error('Hedge status error:', e); document.getElementById('hedgeStatus').textContent = 'N/A'; }
+
+  try {
+    const maxLev = await engineRead.maxLeverage();
+    document.getElementById('paramLeverage').textContent = maxLev.toString() + 'x';
+    const margin = await engineRead.maintenanceMarginRate();
+    document.getElementById('paramMargin').textContent = (Number(margin)/100).toFixed(1) + '%';
+    const interval = await engineRead.fundingInterval();
+    document.getElementById('paramFunding').textContent = (Number(interval)/3600) + ' hrs';
+    const liqReward = await engineRead.liquidationReward();
+    document.getElementById('paramLiqReward').textContent = (Number(liqReward)/100).toFixed(1) + '%';
+    const longSize = await engineRead.totalLongSize();
+    document.getElementById('paramLong').textContent = longSize.toString();
+    const shortSize = await engineRead.totalShortSize();
+    document.getElementById('paramShort').textContent = shortSize.toString();
+  } catch(e) { console.error('Params error:', e); }
 }
 
 async function runSimulation() {
