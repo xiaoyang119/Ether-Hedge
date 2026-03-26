@@ -276,6 +276,21 @@
   <!-- Main Grid -->
   <div class="main-grid">
 
+    <!-- HDGT Faucet -->
+    <div class="card" style="grid-column: 1 / -1">
+      <div class="card-header">
+        <span class="card-title">HDGT Test Token Faucet</span>
+        <span class="card-badge warn">Free Mint</span>
+      </div>
+      <div class="card-body" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap">
+        <div style="flex:1; min-width:200px">
+          <div class="form-label">Claim free HDGT tokens for testing</div>
+          <div style="font-size:12px; color:var(--text2)">Anyone can mint — no restrictions. Each claim sends 100 HDGT to your wallet.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="claimHDGT()" style="white-space:nowrap; width:160px">Claim 100 HDGT</button>
+      </div>
+    </div>
+
     <!-- Collateral Management -->
     <div class="card">
       <div class="card-header">
@@ -392,12 +407,12 @@
 
     <!-- Contract Links -->
     <div class="contracts-bar">
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc" target="_blank"><span>HDGT</span> 0x8eb6…53cc</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x9cdff898604459e52f4893d394b567d8b220fe9d" target="_blank"><span>Vault</span> 0x9cdf…fe9d</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x67d6336e7815a93d6558864112838037b5f5f42b" target="_blank"><span>Engine</span> 0x67d6…f42b</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xeb641df51fad8bf6945c7f64491023427241d12b" target="_blank"><span>Bank</span> 0xeb64…d12b</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08" target="_blank"><span>Oracle</span> 0xb3d7…3b08</a>
-      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xe1f0f15ebd6aa0672e21ab966b4778c15280884f" target="_blank"><span>Risk</span> 0xe1f0…884f</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x2acdc6ce20e8b2274a6ea9ae12463d5f413cac9b" target="_blank"><span>HDGT</span> 0x2acd…ac9b</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xe1de74229b02503282d247a568288860d0dca407" target="_blank"><span>Vault</span> 0xe1de…a407</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xf4d282a0d4ea06bdae9e98480790bd5904e037cc" target="_blank"><span>Engine</span> 0xf4d2…37cc</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0xe8e7a72ff1803b22f4ee5d72406ada7ad4890bd5" target="_blank"><span>Bank</span> 0xe8e7…0bd5</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x2f15b664afe72740ec4d98222f389a90f7c6c8a4" target="_blank"><span>Oracle</span> 0x2f15…c8a4</a>
+      <a class="contract-link" href="https://sepolia.etherscan.io/address/0x0eb59afb6e9e12df69e30db3d634c5e725e2b5c7" target="_blank"><span>Risk</span> 0x0eb5…b5c7</a>
     </div>
 
   </div>
@@ -406,12 +421,12 @@
 <script>
 // ─── Contract Addresses ───
 const ADDR = {
-  vault:    '0x9cdff898604459e52f4893d394b567d8b220fe9d',
-  engine:   '0x67d6336e7815a93d6558864112838037b5f5f42b',
-  bank:     '0xeb641df51fad8bf6945c7f64491023427241d12b',
-  oracle:   '0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08',
-  risk:     '0xe1f0f15ebd6aa0672e21ab966b4778c15280884f',
-  hdgt:     '0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc',
+  vault:    '0xe1de74229b02503282d247a568288860d0dca407',
+  engine:   '0xf4d282a0d4ea06bdae9e98480790bd5904e037cc',
+  bank:     '0xe8e7a72ff1803b22f4ee5d72406ada7ad4890bd5',
+  oracle:   '0x2f15b664afe72740ec4d98222f389a90f7c6c8a4',
+  risk:     '0x0eb59afb6e9e12df69e30db3d634c5e725e2b5c7',
+  hdgt:     '0x2acdc6ce20e8b2274a6ea9ae12463d5f413cac9b',
 };
 
 // ─── ABIs (minimal) ───
@@ -439,7 +454,7 @@ const ENGINE_ABI = [
 
 const ORACLE_ABI = [
   "function getMarkPrice() external view returns (uint256)",
-  "function getRawPrice() external view returns (int256 answer, uint256 updatedAt, uint8 decimals)",
+  "function getRawPrice() external view returns (int256 answer, uint8 decimals, uint256 updatedAt)",
   "function staleAfter() external view returns (uint256)",
   "function minAnswer() external view returns (uint256)",
   "function maxAnswer() external view returns (uint256)",
@@ -465,6 +480,8 @@ const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function symbol() external view returns (string)",
   "function decimals() external view returns (uint8)",
+  "function mint(address to, uint256 amount) external",
+  "function owner() external view returns (address)",
 ];
 
 // ─── State ───
@@ -684,6 +701,22 @@ function clearPositionInfo() {
   });
   document.getElementById('healthBadge').textContent = '—';
   document.getElementById('healthBadge').className = 'card-badge';
+}
+
+// ─── Claim HDGT (Faucet) ───
+async function claimHDGT() {
+  try {
+    if (!userAddr) { log('Connect wallet first', 'err'); return; }
+    const amount = ethers.parseEther('100');
+    log('Minting 100 HDGT to ' + userAddr.slice(0,6) + '…' + userAddr.slice(-4) + '…', 'info');
+    const tx = await hdgtToken.mint(userAddr, amount);
+    log('TX sent: ' + tx.hash, 'info');
+    await tx.wait();
+    log('Claimed 100 HDGT ✓', 'ok');
+    refreshAll();
+  } catch (e) {
+    log('Claim failed: ' + e.message, 'err');
+  }
 }
 
 // ─── Approve HDGT ───
