@@ -456,6 +456,7 @@ const BANK_ABI = [
   "function userBalances(address) external view returns (uint256)",
   "function reservedMargin(address) external view returns (uint256)",
   "function freeBalance(address) external view returns (uint256)",
+  "function withdraw(uint256 amount) external",
 ];
 
 const ERC20_ABI = [
@@ -516,7 +517,7 @@ async function connectWallet() {
     engine    = new ethers.Contract(ADDR.engine, ENGINE_ABI, signer);
     oracle    = new ethers.Contract(ADDR.oracle, ORACLE_ABI, provider);
     risk      = new ethers.Contract(ADDR.risk, RISK_ABI, provider);
-    bank      = new ethers.Contract(ADDR.bank, BANK_ABI, provider);
+    bank      = new ethers.Contract(ADDR.bank, BANK_ABI, signer);
     hdgtToken = new ethers.Contract(ADDR.hdgt, ERC20_ABI, signer);
 
     const btn = document.getElementById('connectBtn');
@@ -726,7 +727,7 @@ async function withdrawCollateral() {
     if (!amtStr) { log('Enter HDGT amount', 'err'); return; }
     const amt = ethers.parseEther(amtStr);
     log('Withdrawing ' + amtStr + ' HDGT…', 'info');
-    const tx = await vault.withdrawCollateral(amt);
+    const tx = await bank.withdraw(amt);
     log('TX sent: ' + tx.hash, 'info');
     await tx.wait();
     log('Withdrawn ' + amtStr + ' HDGT ✓', 'ok');
