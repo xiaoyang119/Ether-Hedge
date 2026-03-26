@@ -7,7 +7,6 @@ A web-based frontend for interacting with the HedgeX perpetual swap hedging prot
 - **Python 3** (any version 3.6+)
 - **MetaMask** browser extension installed
 - **Sepolia test ETH** in your wallet (for gas fees)
-- **HDGT tokens** (custom ERC-20 collateral — minted by the contract owner)
 
 ## Quick Start
 
@@ -23,18 +22,24 @@ A web-based frontend for interacting with the HedgeX perpetual swap hedging prot
 
 4. Click **Connect Wallet** — MetaMask will prompt you to connect and switch to Sepolia if needed.
 
+5. Click **Claim 100 HDGT** to get free test tokens, then start trading.
+
 ## Getting HDGT Tokens
 
-HDGT is the custom ERC-20 collateral token for this protocol. To get test HDGT:
+HDGT is the custom ERC-20 collateral token for this protocol. The `mint()` function is open to everyone — no owner restriction.
 
-1. Ask the contract owner to call `mint(yourAddress, amount)` on the HedgeToken contract.
-2. Or, if you are the owner, call `mint()` directly via [Etherscan Write Contract](https://sepolia.etherscan.io/address/0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc#writeContract).
+**Option 1 — Use the DApp (recommended):**
+Click the **Claim 100 HDGT** button at the top of the page. Each click mints 100 HDGT to your wallet.
+
+**Option 2 — Use Etherscan directly:**
+Call `mint(yourAddress, amount)` on the [HedgeToken Write Contract](https://sepolia.etherscan.io/address/0x2acdc6ce20e8b2274a6ea9ae12463d5f413cac9b#writeContract) page.
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| **Live Price Feed** | Reads ETH/USD price from Chainlink oracle via OracleAdapter |
+| **HDGT Faucet** | One-click mint of free HDGT test tokens — no restrictions |
+| **Live Price Feed** | Reads BTC/USD price from Chainlink oracle via OracleAdapter |
 | **Collateral Management** | Approve, deposit, and withdraw HDGT tokens to/from MarginBank |
 | **Open Hedge** | Open a delta-neutral short perpetual position with configurable hedge ratio |
 | **Close Hedge** | Close your active hedge and settle P&L |
@@ -45,31 +50,39 @@ HDGT is the custom ERC-20 collateral token for this protocol. To get test HDGT:
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
-| HedgeToken (HDGT) | `0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc` | [View](https://sepolia.etherscan.io/address/0x8eb6392ebb2c09413f3e9bd3976da199f6d253cc#code) |
-| HedgingVault | `0x9cdff898604459e52f4893d394b567d8b220fe9d` | [View](https://sepolia.etherscan.io/address/0x9cdff898604459e52f4893d394b567d8b220fe9d#code) |
-| PerpetualEngine | `0x67d6336e7815a93d6558864112838037b5f5f42b` | [View](https://sepolia.etherscan.io/address/0x67d6336e7815a93d6558864112838037b5f5f42b#code) |
-| MarginBank | `0xeb641df51fad8bf6945c7f64491023427241d12b` | [View](https://sepolia.etherscan.io/address/0xeb641df51fad8bf6945c7f64491023427241d12b#code) |
-| OracleAdapter | `0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08` | [View](https://sepolia.etherscan.io/address/0xb3d728c5e17191b4c85f8b6e10acb9f6c2d33b08#code) |
-| RiskManager | `0xe1f0f15ebd6aa0672e21ab966b4778c15280884f` | [View](https://sepolia.etherscan.io/address/0xe1f0f15ebd6aa0672e21ab966b4778c15280884f#code) |
-| Chainlink ETH/USD Feed | `0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43` | [View](https://sepolia.etherscan.io/address/0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43) |
+| HedgeToken (HDGT) | `0x2acdc6ce20e8b2274a6ea9ae12463d5f413cac9b` | [View](https://sepolia.etherscan.io/address/0x2acdc6ce20e8b2274a6ea9ae12463d5f413cac9b#code) |
+| HedgingVault | `0xe1de74229b02503282d247a568288860d0dca407` | [View](https://sepolia.etherscan.io/address/0xe1de74229b02503282d247a568288860d0dca407#code) |
+| PerpetualEngine | `0xf4d282a0d4ea06bdae9e98480790bd5904e037cc` | [View](https://sepolia.etherscan.io/address/0xf4d282a0d4ea06bdae9e98480790bd5904e037cc#code) |
+| MarginBank | `0xe8e7a72ff1803b22f4ee5d72406ada7ad4890bd5` | [View](https://sepolia.etherscan.io/address/0xe8e7a72ff1803b22f4ee5d72406ada7ad4890bd5#code) |
+| OracleAdapter | `0x2f15b664afe72740ec4d98222f389a90f7c6c8a4` | [View](https://sepolia.etherscan.io/address/0x2f15b664afe72740ec4d98222f389a90f7c6c8a4#code) |
+| RiskManager | `0x0eb59afb6e9e12df69e30db3d634c5e725e2b5c7` | [View](https://sepolia.etherscan.io/address/0x0eb59afb6e9e12df69e30db3d634c5e725e2b5c7#code) |
+| Chainlink BTC/USD Feed | `0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43` | [View](https://sepolia.etherscan.io/address/0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43) |
 
 ## Usage Guide
 
+### Step 0 — Get HDGT Tokens
+
+Click **Claim 100 HDGT** at the top of the DApp. Repeat as needed.
+
 ### Step 1 — Approve & Deposit Collateral
 
-Enter a HDGT amount (e.g. `0.1`), click **Approve**, then click **Deposit**.
+Enter a HDGT amount (e.g. `1`), click **Approve**, then click **Deposit**.
 
 ### Step 2 — Open a Hedge
 
-- **Spot Value (USD, 8 decimals):** The USD value of your spot exposure. For $2000, enter `200000000000`.
+- **Spot Value (USD, 8 decimals):** The USD value of your spot exposure. For $100, enter `10000000000`.
 - **Hedge Ratio (BPS):** `10000` = 100% hedge, `5000` = 50% hedge.
-- **Collateral (18 decimals):** Amount of HDGT for margin. For 0.1 HDGT, enter `100000000000000000`.
+- **Collateral (18 decimals):** Amount of HDGT for margin. For 1 HDGT, enter `1000000000000000000`.
 
 Click **Open Hedge Position**.
 
 ### Step 3 — Monitor & Close
 
 Use the **Position Health** panel to monitor your hedge. Click **Close Hedge** when ready to settle.
+
+### Withdraw
+
+Enter the amount in the Collateral Management panel and click **Withdraw**. You can only withdraw your free (unreserved) balance. Close any active hedge first to free up reserved collateral.
 
 ### Simulation
 
@@ -78,7 +91,7 @@ Use the **Simulate Hedge** panel to test scenarios without spending gas. This ca
 ## Architecture
 
 ```
-User ──▶ HedgingVault ──▶ PerpetualEngine ──▶ OracleAdapter (Chainlink)
+User ──▶ HedgingVault ──▶ PerpetualEngine ──▶ OracleAdapter (Chainlink BTC/USD)
               │                   │
               ▼                   ▼
           MarginBank         RiskManager
@@ -88,7 +101,7 @@ User ──▶ HedgingVault ──▶ PerpetualEngine ──▶ OracleAdapter (C
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS with ethers.js v6
-- **Smart Contracts:** Solidity 0.8.24, OpenZeppelin v5, Chainlink
+- **Smart Contracts:** Solidity 0.8.20–0.8.24, OpenZeppelin v5, Chainlink
 - **Network:** Ethereum Sepolia Testnet
 - **Server:** Python `http.server` (local development only)
 
@@ -98,6 +111,8 @@ User ──▶ HedgingVault ──▶ PerpetualEngine ──▶ OracleAdapter (C
 |---------|----------|
 | MetaMask not connecting | Make sure MetaMask extension is installed and unlocked |
 | Wrong network | Click Connect — the DApp will auto-prompt to switch to Sepolia |
-| Price shows "Error" | Chainlink price may be stale; try refreshing after a few minutes |
+| Price shows "Stale" | Chainlink Sepolia feed updates infrequently; the DApp will show the last known price with a warning |
+| Claim HDGT failed | Make sure your wallet is connected and you have Sepolia ETH for gas |
+| Withdraw failed | Make sure you are withdrawing ≤ your Free balance (not Reserved) |
 | Transaction reverted | Check the Activity Log at the bottom for the error message |
 | Port 8000 in use | Stop other servers, or edit `PORT` in `run.py` |
